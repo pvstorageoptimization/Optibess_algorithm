@@ -1,0 +1,105 @@
+import os
+import unittest
+from unittest.mock import Mock, patch
+import numpy as np
+import pandas as pd
+import pvlib.iotools
+
+from Optibess_algorithm.pv_output_calculator import get_pvlib_output, get_pvgis_hourly, Tech
+
+test_folder = os.path.dirname(os.path.abspath(__file__))
+
+
+class TestPvOutputCalculator(unittest.TestCase):
+
+    def setUp(self) -> None:
+        # mocks calls for pvgis server
+        pvlib.iotools = Mock()
+        pvlib.iotools.get_pvgis_tmy.return_value = [pd.read_csv(os.path.join(test_folder,
+                                                                             "output_calculator/tmy_example.csv"),
+                                                                parse_dates=True,
+                                                                index_col=0), ]
+        pvlib.iotools.get_pvgis_hourly.return_value = [pd.read_csv(os.path.join(test_folder,
+                                                                                "output_calculator/pvgis_hourly_data_example.csv"),
+                                                                   parse_dates=True, index_col=0), ]
+
+        # mocks calls to pvlib library to test functions called
+        pvlib.pvsystem.FixedMount = Mock(side_effect=pvlib.pvsystem.FixedMount)
+        pvlib.pvsystem.SingleAxisTrackerMount = Mock(side_effect=pvlib.pvsystem.SingleAxisTrackerMount)
+        pvlib.pvsystem.Array = Mock(side_effect=pvlib.pvsystem.Array)
+        pvlib.pvsystem.PVSystem = Mock(side_effect=pvlib.pvsystem.PVSystem)
+        self.model_chain = patch('pvlib.modelchain.ModelChain').start()
+        self.model_chain.return_value.results.ac = pd.read_csv(os.path.join(test_folder,
+                                                                            "output_calculator/model_chin_ac_results_example.csv"),
+                                                               parse_dates=True, index_col=0).squeeze()
+
+    def tearDown(self) -> None:
+        patch.stopall()
+
+    def test_pvlib_output_fixed(self):
+        result = get_pvlib_output(latitude=30, longitude=34, modules_per_string=10, number_of_inverters=100)
+        # check data shape
+        self.assertEqual(result.shape[0], 8760, "pvlib output is not in the right shape (Should have 8760 rows)")
+        # check values are in reasonable range
+        self.assertTrue(np.all(result.iloc[0] < 25))
+        # check function calls
+        pvlib.pvsystem.FixedMount.assert_called_once()
+        pvlib.pvsystem.Array.assert_called_once()
+        pvlib.pvsystem.PVSystem.assert_called_once()
+        self.model_chain.assert_called_once()
+        self.model_chain.return_value.run_model.assert_called_once()
+
+    def test_pvlib_output_tracker(self):
+        result = get_pvlib_output(latitude=30, longitude=34, modules_per_string=10, number_of_inverters=100,
+                                  tech=Tech.TRACKER)
+        # check data shape
+        self.assertEqual(result.shape[0], 8760, "pvlib output is not in the right shape (Should have 8760 rows)")
+        # check values are not nan
+        self.assertFalse(np.isnan(result).any())
+        # check function calls
+        pvlib.pvsystem.SingleAxisTrackerMount.assert_called_once()
+        pvlib.pvsystem.Array.assert_called_once()
+        pvlib.pvsystem.PVSystem.assert_called_once()
+        self.model_chain.assert_called_once()
+        self.model_chain.return_value.run_model.assert_called_once()
+
+    def test_pvlib_output_east_west(self):
+        result = get_pvlib_output(latitude=30, longitude=34, modules_per_string=10, number_of_inverters=100,
+                                  tech=Tech.EAST_WEST)
+        # check data shape
+        self.assertEqual(result.shape[0], 8760, "pvlib output is not in the right shape (Should have 8760 rows)")
+        # check values are in reasonable range
+        self.assertTrue(np.all(result.iloc[0] < 25))
+        # check function calls
+        self.assertEqual(pvlib.pvsystem.FixedMount.call_count, 2)
+        self.assertEqual(pvlib.pvsystem.Array.call_count, 2)
+        pvlib.pvsystem.PVSystem.assert_called_once()
+        self.model_chain.assert_called_once()
+        self.model_chain.return_value.run_model.assert_called_once()
+
+    def test_pvlib_output_incorrect_arg(self):
+        # check error is raised when number of inverters is 0
+        with self.assertRaises(ValueError) as e:
+            get_pvlib_output(latitude=30, longitude=34, number_of_inverters=0)
+        self.assertEqual(str(e.exception), "Number of units should be positive")
+
+    def test_pvgis_output_fixed(self):
+        result = get_pvgis_hourly(latitude=30, longitude=34)
+        # check data shape
+        self.assertEqual(result.shape[0], 8760, "pvgis output is not in the right shape (Should have 8760 rows)")
+        # check values are in reasonable range
+        self.assertTrue(np.all(result.iloc[0] < 225))
+
+    def test_pvgis_output_tracker(self):
+        result = get_pvgis_hourly(latitude=30, longitude=34, tech=Tech.TRACKER)
+        # check data shape
+        self.assertEqual(result.shape[0], 8760, "pvgis output is not in the right shape (Should have 8760 rows)")
+        # check values are in reasonable range
+        self.assertTrue(np.all(result.iloc[0] < 225))
+
+    def test_pvgis_output_east_west(self):
+        result = get_pvgis_hourly(latitude=30, longitude=34, tech=Tech.EAST_WEST)
+        # check data shape
+        self.assertEqual(result.shape[0], 8760, "pvgis output is not in the right shape (Should have 8760 rows)")
+        # check values are in reasonable range
+        self.assertTrue(np.all(result.iloc[0] < 225))
