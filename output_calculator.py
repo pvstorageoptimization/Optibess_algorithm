@@ -972,12 +972,12 @@ class OutputCalculator:
 
 if __name__ == '__main__':
     year_num = 25
-    connection = 180000
-    storage = LithiumPowerStorage(year_num, connection, battery_hours=6,
-                                  aug_table=((0, 846), (72, 1093), (140, 179), (200, 200)))
+    connection = 5000
+    storage = LithiumPowerStorage(year_num, connection, battery_hours=2, use_default_aug=True)
+                                  # aug_table=((0, 846), (72, 1093), (140, 179), (200, 200)))
 
     # file
-    prod = PvProducer("../media/Ramat Hovav.csv", pv_peak_power=300000)
+    prod = PvProducer("../media/test.csv", pv_peak_power=13000)
 
     # pvgis
     # prod = PvProducer(latitude=30.60187, longitude=34.97361, tech=Tech.EAST_WEST, pv_peak_power=9821)
@@ -989,7 +989,7 @@ if __name__ == '__main__':
     #                   number_of_inverters=2000, module=module, inverter=inverter,
     #                   tech=Tech.EAST_WEST)
 
-    test = OutputCalculator(year_num, connection, prod, storage, producer_factor=0.98, save_all_results=False)
+    test = OutputCalculator(year_num, connection, prod, storage, producer_factor=1, save_all_results=True)
 
     start_time = time.time()
     test.run()
