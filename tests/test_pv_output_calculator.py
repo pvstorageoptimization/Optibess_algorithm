@@ -20,7 +20,8 @@ class TestPvOutputCalculator(unittest.TestCase):
                                                                 parse_dates=True,
                                                                 index_col=0), ]
         pvlib.iotools.get_pvgis_hourly.return_value = [pd.read_csv(os.path.join(test_folder,
-                                                                                "output_calculator/pvgis_hourly_data_example.csv"),
+                                                                                "output_calculator"
+                                                                                "/pvgis_hourly_data_example.csv"),
                                                                    parse_dates=True, index_col=0), ]
 
         # mocks calls to pvlib library to test functions called
@@ -30,7 +31,8 @@ class TestPvOutputCalculator(unittest.TestCase):
         pvlib.pvsystem.PVSystem = Mock(side_effect=pvlib.pvsystem.PVSystem)
         self.model_chain = patch('pvlib.modelchain.ModelChain').start()
         self.model_chain.return_value.results.ac = pd.read_csv(os.path.join(test_folder,
-                                                                            "output_calculator/model_chin_ac_results_example.csv"),
+                                                                            "output_calculator"
+                                                                            "/model_chin_ac_results_example.csv"),
                                                                parse_dates=True, index_col=0).squeeze()
 
     def tearDown(self) -> None:
