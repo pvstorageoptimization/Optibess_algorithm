@@ -12,7 +12,7 @@ class PowerStorage(ABC):
 
     @property
     @abstractmethod
-    def num_of_years(self):
+    def num_of_years(self) -> int:
         pass
 
     @property

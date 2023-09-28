@@ -69,7 +69,7 @@ class PvProducer(Producer):
                  annual_deg: float = 0.0035
                  ):
         """
-        Initialize the PV producer adn calculate the power output
+        Initialize the PV producer and calculate the power output
         :param pv_output_file: a file name for hourly output of a pv system. Should contain 2 columns:
                date and hour, pv output
         :param time_zone: the time zone for the system (relevant only if file is supplied)
