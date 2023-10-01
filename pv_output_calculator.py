@@ -24,8 +24,8 @@ class Tech(Enum):
 def get_pvlib_output(latitude: float, longitude: float, tilt: float = TILT.default, azimuth: float = AZIMUTH.default,
                      tech: Tech = Tech.FIXED, modules_per_string: int = DEFAULT_MODULES_PER_STRING,
                      strings_per_inverter: int = DEFAULT_STRINGS_PER_INVERTER,
-                     number_of_inverters: int = DEFAULT_NUMBER_OF_INVERTERS, module: pd.Series = MODULE_DEFAULT,
-                     inverter: pd.Series = INVERTER_DEFAULT) -> pd.Series:
+                     number_of_inverters: int = DEFAULT_NUMBER_OF_INVERTERS, module: pd.Series = MODULE_DEFAULT.copy(),
+                     inverter: pd.Series = INVERTER_DEFAULT.copy()) -> pd.Series:
     """
     calculate the output of a pv system using pvlib
     :param latitude: the latitude of the location of the system
@@ -132,3 +132,4 @@ if __name__ == '__main__':
     # raw_data1 = get_pvgis_hourly(30, 34, pv_peak=10000)
     # print(raw_data1[raw_data1.index.month == 5])
     raw_data1 = get_pvlib_output(latitude=52.5, longitude=13, number_of_inverters=1000)
+    print(raw_data1.head(24))

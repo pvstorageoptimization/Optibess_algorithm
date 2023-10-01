@@ -913,7 +913,7 @@ class OutputCalculator:
         """
         calculate and print the average in each hour for each month across the given years
         :param years: iterable of years to calculate for (refer to years since year one, acceptable values are between
-            0 and num_of_years)
+            0, inclusive, and num_of_years, exclusive)
         :param stat: the stat to calculate
         """
         averages = []
@@ -945,7 +945,7 @@ class OutputCalculator:
         """
         plot a graph of the given stat over the years
         :param years: iterable of years to calculate for (refer to years since year one, acceptable values are between
-            0 and num_of_years)
+            0, inclusive, and num_of_years, exclusive)
         :param stat: the stat to plot
         """
         # check stat is in results
