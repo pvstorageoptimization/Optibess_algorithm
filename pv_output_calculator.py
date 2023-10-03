@@ -20,7 +20,6 @@ class Tech(Enum):
     EAST_WEST = auto()
 
 
-# TODO: change module and inverter to something immutable
 def get_pvlib_output(latitude: float, longitude: float, tilt: float = TILT.default, azimuth: float = AZIMUTH.default,
                      tech: Tech = Tech.FIXED, modules_per_string: int = DEFAULT_MODULES_PER_STRING,
                      strings_per_inverter: int = DEFAULT_STRINGS_PER_INVERTER,
