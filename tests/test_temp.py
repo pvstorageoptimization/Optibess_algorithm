@@ -1,5 +1,7 @@
+import math
 import time
 
+import pandas as pd
 from numba import njit, float64
 
 from Optibess_algorithm.output_calculator import OutputCalculator, Coupling
@@ -9,60 +11,77 @@ from Optibess_algorithm.power_storage import LithiumPowerStorage, PowerStorage
 from Optibess_algorithm.producers import PvProducer, Producer
 
 
-# def discharge_algo(h, pre_pv2bess, pv_rest, soc, p_sell, p_buy):
-#     def helper_algo(current_h, current_soc):
-#         if current_h < 0:
-#             if current_soc < 0:
-#                 return -math.inf
-#             else:
-#                 return 0
-#
-#         # discharge option
-#         if pv_rest[current_h] >= grid_size or (current_h > 0 and p_sell[current_h] < min(p_sell[:current_h])):
-#             option1 = -math.inf
-#         else:
-#             x = min(grid_size, pcs - pv_rest[current_h])
-#             option1 = (x + pv_rest[current_h]) * p_sell[current_h] + helper_algo(current_h - 1,
-#                                                                                  current_soc - x)
-#         # only overflow charge option
-#         if pre_pv2bess[current_h] <= 0:
-#             option2 = -math.inf
-#         else:
-#             x = min(pre_pv2bess[current_h], capacity - current_soc)
-#             option2 = pv_rest[current_h] * p_sell[current_h] + helper_algo(current_h - 1,
-#                                                                            min(current_soc + x, 0))
-#         # if no charge needed, done consider the other options
-#         if current_soc >= 0:
-#             return max(option1, option2)
-#         # only pv charge option
-#         if pv_rest[current_h] <= 0:
-#             option3 = -math.inf
-#         else:
-#             x = min(pcs, capacity - current_soc, pre_pv2bess[current_h] + pv_rest[current_h])
-#             y = max(pv_rest[current_h] - max(0, min(pcs - pre_pv2bess[current_h],
-#                                                     capacity - current_soc - pre_pv2bess[current_h])), 0)
-#             option3 = y * p_sell[current_h] + helper_algo(current_h - 1, current_soc + x)
-#         # charge without overlap option
-#         y = max(min(grid_size - pv_rest[current_h], pcs - pre_pv2bess[current_h],
-#                     capacity - current_soc - pre_pv2bess[current_h]), 0)
-#         option4 = pv_rest[current_h] * p_sell[current_h] - y * p_buy[current_h] + helper_algo(current_h - 1,
-#                                                                                               min(current_soc + y +
-#                                                                                                   pre_pv2bess[
-#                                                                                                       current_h], 0))
-#         # charge with overlap option
-#         if y == 0 or y == capacity - current_soc - pre_pv2bess[current_h]:
-#             option5 = -math.inf
-#         else:
-#             z = (pcs - y - pre_pv2bess[current_h]) / 2
-#             option5 = (pv_rest[current_h] - z) * p_sell[current_h] - (y + z) * p_buy[current_h] + helper_algo(
-#                 current_h - 1,
-#                 min(current_soc + y + 2 * z, 0))
-#         return max(option1, option2, option3, option4, option5)
-#
-#     return helper_algo(h, soc)
+def discharge_algo(h, pre_pv2bess, pv_rest, soc, p_sell, p_buy):
+
+    def helper_algo(current_h, current_soc, path=None):
+        if path is None:
+            path = [0] * (h + 1)
+        if current_h < 0:
+            if current_soc < 0:
+                return -math.inf, path
+            else:
+                return 0, path
+        possible_paths = [[0] * (h + 1) for _ in range(3)]
+
+        # discharge option
+        if pv_rest[current_h] >= grid_size or (current_h > 0 and p_sell[current_h] < min(p_sell[:current_h])):
+            option1 = -math.inf
+        elif current_h == 0 or current_soc == -capacity:
+            temp_path = path.copy()
+            temp_path[current_h] = 0
+            value, possible_paths[0] = helper_algo(current_h - 1, current_soc, temp_path)
+            option1 = value
+        else:
+            x = max(min(grid_size, pcs - pv_rest[current_h]), 0)
+            temp_path = path.copy()
+            temp_path[current_h] = -x
+            value, possible_paths[0] = helper_algo(current_h - 1, current_soc - x, temp_path)
+            option1 = (x * rte + pv_rest[current_h]) * p_sell[current_h] + value
+        # only overflow charge option
+        x = min(pre_pv2bess[current_h], capacity - current_soc, pcs)
+        temp_path = path.copy()
+        temp_path[current_h] = x
+        value, possible_paths[1] = helper_algo(current_h - 1, min(current_soc + x, 0), temp_path)
+        option2 = pv_rest[current_h] * p_sell[current_h] + value
+        # if no charge needed, don't consider the other options
+        # if current_soc >= 0:
+        #     if option1 >= option2:
+        #         return option1, possible_paths[0]
+        #     else:
+        #         return option2, possible_paths[1]
+        # only pv charge option
+        if pv_rest[current_h] <= 0:
+            option3 = -math.inf
+        else:
+            x = min(pcs, capacity - current_soc, pre_pv2bess[current_h] + pv_rest[current_h])
+            y = max(pv_rest[current_h] - max(0, min(pcs - pre_pv2bess[current_h],
+                                                    capacity - current_soc - pre_pv2bess[current_h])), 0)
+            temp_path = path.copy()
+            temp_path[current_h] = x
+            value, possible_paths[2] = helper_algo(current_h - 1, min(current_soc + x, 0), temp_path)
+            option3 = y * p_sell[current_h] + value
+        # charge without overlap option
+        # y = max(min(grid_size - pv_rest[current_h], pcs - pre_pv2bess[current_h],
+        #             capacity - current_soc - pre_pv2bess[current_h]), 0)
+        # option4 = pv_rest[current_h] * p_sell[current_h] - y * p_buy[current_h] + helper_algo(current_h - 1,
+        #                                                                                       min(current_soc + y +
+        #                                                                                           pre_pv2bess[
+        #                                                                                               current_h], 0))
+        # # charge with overlap option
+        # if y == 0 or y == capacity - current_soc - pre_pv2bess[current_h]:
+        #     option5 = -math.inf
+        # else:
+        #     z = (pcs - y - pre_pv2bess[current_h]) / 2
+        #     option5 = (pv_rest[current_h] - z) * p_sell[current_h] - (y + z) * p_buy[current_h] + helper_algo(
+        #         current_h - 1,
+        #         min(current_soc + y + 2 * z, 0))
+        chosen_option = np.argmax([option1, option2, option3])
+        path = possible_paths[chosen_option]
+        return max(option1, option2, option3), path#, option4, option5)
+
+    return helper_algo(h, soc)
 
 
-@njit
 def calc_power_to_bess(sell_less_price, buy_less_price, hour_ordering, pv_quan, grid_quan, p, self_cons, charge_loss,
                        grid_bess_loss):
     # concatenate prices together and sort
@@ -115,7 +134,6 @@ def calc_power_to_bess(sell_less_price, buy_less_price, hour_ordering, pv_quan, 
     return unsorted_quantities[:length], unsorted_quantities[length:]
 
 
-@njit
 def calc_daily_bess_power_flow(pre_pv2bess, pv_rest, grid2bess_no_overlap, max_discharge, p_sell, p_buy,
                                day_capacity, charge_loss, grid_bess_loss, active_self_cons):
     length = len(pre_pv2bess)
@@ -133,7 +151,7 @@ def calc_daily_bess_power_flow(pre_pv2bess, pv_rest, grid2bess_no_overlap, max_d
     excess_pv_used = np.concatenate((temp, temp))
     prices = np.concatenate((p_sell / (1 - charge_loss), p_buy / (1 - grid_bess_loss)))
     temp = np.array(list(zip(prices, [0.0] * length + [1.0] * length, excess_pv_used, quantities)),
-                    dtype=[('value', float64), ('type', float64), ('prior', float64), ('quan', float64)])
+                    dtype=[('value', float), ('type', float), ('prior', float), ('quan', float)])
     sorted_hours = temp.argsort(kind='mergesort', order=['value', 'type', 'prior', 'quan'])
 
     self_cons = np.full(length, active_self_cons)
@@ -439,18 +457,16 @@ class OutputCalculatorTariff(OutputCalculator):
                     sorted_hours_j = sorted_hours[sorted_hours % length < j]
                     sorted_hours_j[sorted_hours_j >= length] -= length - j
                     # schedule charge for the remaining power
-                    pv_charge, grid_charge = calc_power_to_bess(np.concatenate((sell_price_less,
-                                                                                np.full(j, True))),
-                                                                np.concatenate((np.full(j, False),
-                                                                                buy_price_less)),
-                                                                sorted_hours_j,
-                                                                pv_rest[:j],
-                                                                grid2bess_no_overlap[:j],
-                                                                min(max_discharge[j], day_capacity - total_soc) -
-                                                                free_power[j],
-                                                                self_cons_needed,
-                                                                self.charge_loss,
-                                                                self.grid_bess_loss)
+                    pv_charge, grid_charge = self._calc_power_to_bess(np.concatenate((sell_price_less,
+                                                                                      np.full(j, True))),
+                                                                      np.concatenate((np.full(j, False),
+                                                                                      buy_price_less)),
+                                                                      sorted_hours_j,
+                                                                      pv_rest[:j],
+                                                                      grid2bess_no_overlap[:j],
+                                                                      min(max_discharge[j], day_capacity - total_soc) -
+                                                                      free_power[j],
+                                                                      self_cons_needed)
                     # if charge scheduled is not enough to discharge the whole hour, only discharge the charged power
                     total_discharge = (sum(np.maximum(pv_charge * (1 - self._charge_loss) +
                                                       grid_charge * (1 - self._grid_bess_loss)
@@ -473,26 +489,27 @@ class OutputCalculatorTariff(OutputCalculator):
             if best_discharge_hour == -1:
                 break
 
-            total_grid_discharge[best_discharge_hour] += min(max_discharge[best_discharge_hour],
-                                                             day_capacity - total_soc)
             # first uses free power for excess pv
             total_charge = 0
             j = best_discharge_hour - 1
-            discharge_amount = min(max_discharge[best_discharge_hour],
-                                   day_capacity - total_soc)
+            max_discharge_amount = min(max_discharge[best_discharge_hour],
+                                       day_capacity - total_soc)
             if free_power[best_discharge_hour] > 0:
-                while round(total_charge * (1 - self._charge_loss), 4) < round(discharge_amount, 4) and j >= 0:
-                    charge_amount = min(discharge_amount / (1 - self._charge_loss) - total_charge +
-                                        self._active_hourly_self_cons[24 * day],
+                while round(total_charge * (1 - self._charge_loss), 4) < round(max_discharge_amount, 4) and j >= 0:
+                    charge_amount = min(max_discharge_amount / (1 - self._charge_loss) - total_charge +
+                                        (self_cons[j] if total_pv_charge[j] == 0 else 0),
                                         pre_pv2bess[j])
                     if charge_amount > 0:
                         total_pv_charge[j] += charge_amount
-                        total_charge += max(charge_amount - self_cons[j], 0)
+                        total_charge += max(charge_amount - (self_cons[j] if total_pv_charge[j] == 0 else 0), 0) \
+                                        * (1 - self._charge_loss)
                         self_cons[j] = 0
                         pre_pv2bess[j] -= charge_amount
                     j -= 1
             # charge the rest by the schedule and reduce the charge amount from the available
-            if round(total_charge * (1 - self._charge_loss), 4) < round(discharge_amount, 4):
+            if round(total_charge, 4) < round(max_discharge_amount, 4):
+                total_charge += best_pv_charge[:best_discharge_hour].sum() * (1 - self._charge_loss) + \
+                                best_grid_charge[:best_discharge_hour].sum() * (1 - self._grid_bess_loss)
                 pv_rest[:best_discharge_hour] -= best_pv_charge[:best_discharge_hour]
                 total_pv_charge[:best_discharge_hour] += best_pv_charge[:best_discharge_hour]
                 grid2bess_no_overlap[:best_discharge_hour] -= best_grid_charge[:best_discharge_hour]
@@ -502,7 +519,9 @@ class OutputCalculatorTariff(OutputCalculator):
                                                            0,
                                                            self_cons[:best_discharge_hour])
 
-            # prevent charge of discharge again in the discharge hour chosen
+            total_grid_discharge[best_discharge_hour] += total_charge
+
+            # prevent charge or discharge again in the discharge hour chosen
             max_discharge[best_discharge_hour] = 0
             pv_rest[best_discharge_hour] = 0
             grid2bess_no_overlap[best_discharge_hour] = 0
@@ -701,9 +720,9 @@ class OutputCalculatorTariff(OutputCalculator):
         total_discharge_factor = (1 - self._grid_bess_loss) * self._power_storage.rte_table[year]
         max_discharge = np.where(pv_overflow > 0,
                                  0,
-                                 np.maximum((self._grid_size - np.maximum(max_extra_pv2bess *
-                                                                          (1 - self._prod_trans_loss), 0)) /
-                                            total_discharge_factor, 0))
+                                 np.minimum(np.maximum((self._grid_size - np.maximum(max_extra_pv2bess *
+                                                                                     (1 - self._prod_trans_loss), 0)) /
+                                                       total_discharge_factor, 0), self._pcs_power))
         max_discharge += np.where(max_discharge > 0, self._discharge_self_cons, 0)
 
         # the maximum amount of power that can be transmitted from the grid to the bess without blocking transmission
@@ -712,9 +731,10 @@ class OutputCalculatorTariff(OutputCalculator):
                                                          (1 - self._prod_trans_loss),
                                                          self._pcs_power - pv2bess_pre * (1 - self._charge_loss)), 0). \
             to_numpy()
+        max_grid2bess_no_overlap = np.full(pv2bess_pre.shape, 0.0)
 
         # split data to days
-        buy_factor = 1
+        buy_factor = 100000
         pv_prices = np.round(hourly_tariff, 4)
         grid_prices = np.round(hourly_tariff * buy_factor, 4)
         charge_hour_indices = np.where(self._df.index.hour == 0)[0][1:]
@@ -731,24 +751,25 @@ class OutputCalculatorTariff(OutputCalculator):
         insert_indices = np.insert(charge_hour_indices, 0, 0)
         insert_indices = np.append(insert_indices, len(pv_overflow))
         # calculate power flow for each day
-        # for i in range(len(sell_prices_split)):
-        #     pv2bess[insert_indices[i]: insert_indices[i + 1]], grid2bess[insert_indices[i]: insert_indices[i + 1]], \
-        #         bess2grid[insert_indices[i]: insert_indices[i + 1]] = \
-        #         self._calc_daily_bess_power_flow(pv2bess_pre_split[i], max_extra_pv2bess_split[i],
-        #                                          max_grid2bess_no_overlap_split[i],
-        #                                          max_discharge_split[i],
-        #                                          sell_prices_split[i], buy_prices_split[i], i, year)
+        for i in range(len(sell_prices_split)):
+            pv2bess[insert_indices[i]: insert_indices[i + 1]], grid2bess[insert_indices[i]: insert_indices[i + 1]], \
+                bess2grid[insert_indices[i]: insert_indices[i + 1]] = \
+                self._calc_daily_bess_power_flow(pv2bess_pre_split[i], max_extra_pv2bess_split[i],
+                                                 max_grid2bess_no_overlap_split[i],
+                                                 max_discharge_split[i],
+                                                 sell_prices_split[i], buy_prices_split[i], i, year)
 
-        pv2bess, grid2bess, bess2grid = calc_bess_power_flow(pv2bess_pre_split, max_extra_pv2bess_split,
-                                                             max_grid2bess_no_overlap_split, max_discharge_split,
-                                                             sell_prices_split, buy_prices_split,
-                                                             self._df["battery_capacity"].to_numpy(), self._charge_loss,
-                                                             self._grid_bess_loss, self._active_hourly_self_cons,
-                                                             charge_hour_indices)
+        # pv2bess, grid2bess, bess2grid = calc_bess_power_flow(pv2bess_pre_split, max_extra_pv2bess_split,
+        #                                                      max_grid2bess_no_overlap_split, max_discharge_split,
+        #                                                      sell_prices_split, buy_prices_split,
+        #                                                      self._df["battery_capacity"].to_numpy(), self._charge_loss,
+        #                                                      self._grid_bess_loss, self._active_hourly_self_cons,
+        #                                                      charge_hour_indices)
 
         self._df["pv2bess"] = pv2bess
         self._df["grid2bess"] = grid2bess
         self._df["bess2grid"] = bess2grid
+        self._df["bess_from_grid"] = grid2bess * self._grid_bess_loss
         self._df["pv2grid"] = np.minimum(self._df["pv_output"] - self._df["pv2bess"],
                                          self._grid_size / (1 - self._prod_trans_loss))
 
@@ -784,6 +805,10 @@ class OutputCalculatorTariff(OutputCalculator):
             # calculate hourly soc (before adding idle self consumption from grid)
             self._df["grid_from_pv"] = grid_from_pv
             self._df["grid_from_bess"] = grid_from_bess
+            bat_deg_ratio = self._power_storage.degradation_table[year] / self._power_storage.degradation_table[
+                year + 1]
+            self._indices = np.arange(self._df.shape[0])
+            self._calc_soc(year, bat_deg_ratio)
 
         # calculate hourly power to grid (pv + bess) (after reducing losses)
         self._df["output"] = grid_from_pv + grid_from_bess
@@ -812,32 +837,56 @@ class OutputCalculatorTariff(OutputCalculator):
                 self._results.append(self._df.copy(deep=True))
             self._output.append(self._df["output"].copy(deep=True))
 
+    def _set_pcs_power(self):
+        self._pcs_power = 12500
+
 
 if __name__ == "__main__":
-    # grid_size = 5000
-    # pcs = 6265
-    # capacity = 40000
+    grid_size = 100000
+    pcs = 12500
+    capacity = 50000
+    rte = 0.87
     # charge_loss = 0.035
     # trans_loss = 0.024
     # grid_bess_loss = 0.04
     # active_self_cons = capacity * 0.004
-    start_time = time.time()
+    # start_time = time.time()
+    #
+    # storage = LithiumPowerStorage(1, 100000,
+    #                               battery_hours=0.5)  # aug_table=((12, 948), (84, 1102), (120, 1307), (156, 411), (204, 303),
+    # # (240, 24)))
+    # root_folder = os.path.dirname(os.path.abspath(__file__))
+    # producer = PvProducer("C:\\Users\\user\\Documents\\solar optimization project\\dario model\\pv_data.csv",
+    #                       pv_peak_power=150000)
+    # tariff_table = np.loadtxt("C:\\Users\\user\\Documents\\solar optimization project\\dario model\\"
+    #                           "tariffs_average.csv", delimiter=",")
+    # output = OutputCalculatorTariff(1, 100000, producer, storage, save_all_results=True,
+    #                                 tariff_table=tariff_table)
+    # # cProfile.run('output.run()', sort='cumtime')
+    # output.run()
+    #
+    # test = FinancialCalculator(output, 2272, capex_per_land_unit=215000, capex_per_kwp=370, opex_per_kwp=5,
+    #                            battery_capex_per_kwh=150, battery_opex_per_kwh=5, battery_connection_capex_per_kw=50,
+    #                            battery_connection_opex_per_kw=0.5, fixed_capex=150000000, fixed_opex=10000000,
+    #                            interest_rate=0.04, cpi=0.02, tariff_table=tariff_table)
+    # print("irr: ", test.get_irr())
+    # print("npv: ", test.get_npv(5))
+    # # print("lcoe: ", test.get_lcoe())
+    # # print("lcos: ", test.get_lcos())
+    # # print("lcoe no grid power:", test.get_lcoe_no_power_costs())
+    # np.set_printoptions(linewidth=10000)
+    # print(output.monthly_averages())
+    # print("--------------------------------------------------")
+    # print(output.monthly_averages(stat="grid2bess"))
+    # combined_df = pd.concat(output.results)
+    # combined_df.to_csv("C:\\Users\\user\\Documents\\solar optimization project\\dario model\\results.csv")
+    # print(f"took {time.time() - start_time}")
+    pv_data = [788, 7250, 8928, 7084, 8233, 13669, 11428, 7654, 2204, 0, 0, 0, 0, 0, 0,
+               0, 0]
+    pre_pv2bess = [max(x - grid_size, 0) for x in pv_data]
+    pv_rest = [min(grid_size, x) for x in pv_data]
+    prices = [158, 170.9, 173.3, 165.1, 160.8, 157.9, 154.8, 160.2, 175.3, 193.9, 197.5, 197.2, 189.2, 170.2, 150.3,
+              142.1]
+    prices = [x / 1000 for x in prices]
 
-    storage = LithiumPowerStorage(25, 180000,
-                                  use_default_aug=True)  # aug_table=((12, 948), (84, 1102), (120, 1307), (156, 411), (204, 303),
-    # (240, 24)))
-    producer = PvProducer("../../../../test docs/Ramat Hovav.csv", pv_peak_power=300000)
-    output = OutputCalculatorTariff(25, 180000, producer, storage)
-    # cProfile.run('output.run()', sort='cumtime')
-    output.run()
-
-    test = FinancialCalculator(output, 2272, capex_per_land_unit=215000, capex_per_kwp=370, opex_per_kwp=5,
-                               battery_capex_per_kwh=150, battery_opex_per_kwh=5, battery_connection_capex_per_kw=50,
-                               battery_connection_opex_per_kw=0.5, fixed_capex=150000000, fixed_opex=10000000,
-                               interest_rate=0.04, cpi=0.02)
-    print("irr: ", test.get_irr())
-    print("npv: ", test.get_npv(5))
-    print("lcoe: ", test.get_lcoe())
-    print("lcos: ", test.get_lcos())
-    print("lcoe no grid power:", test.get_lcoe_no_power_costs())
-    print(f"took {time.time() - start_time}")
+    print(discharge_algo(15, pre_pv2bess, pv_rest, 0, prices, None))

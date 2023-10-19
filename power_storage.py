@@ -97,7 +97,7 @@ class LithiumPowerStorage(PowerStorage):
                  degradation_table: tuple[float, ...] = DEFAULT_DEG_TABLE,
                  dod_table: tuple[float, ...] = DEFAULT_DOD_TABLE,
                  rte_table: tuple[float, ...] = DEFAULT_RTE_TABLE,
-                 block_size: float = 372.736,
+                 block_size: float = DEFAULT_BLOCK_SIZE,
                  pcs_loss: float = 0.015,
                  mvbat_loss: float = 0.01,
                  trans_loss: float = 0.01,

@@ -727,7 +727,7 @@ class FinancialCalculator:
 
 if __name__ == '__main__':
     # ((0, 1660), (84, 1001), (120, 949), (168, 377), (216, 232), (252, 119))
-    storage = LithiumPowerStorage(25, 180000, aug_table=((12, 920), (84, 1429), (120, 957), (156, 389), (192, 378), (240, 86)))
+    storage = LithiumPowerStorage(25, 180000, aug_table=((0, 1133), (84, 1377), (120, 782), (156, 406), (192, 242), (228, 203)))
 
     # file
     producer = PvProducer("../../test docs/Ramat hovav.csv", pv_peak_power=300000)
@@ -748,7 +748,7 @@ if __name__ == '__main__':
     test = FinancialCalculator(output, 2272, capex_per_land_unit=215000, capex_per_kwp=370, opex_per_kwp=5,
                                battery_capex_per_kwh=150, battery_opex_per_kwh=5, battery_connection_capex_per_kw=50,
                                battery_connection_opex_per_kw=0.5, fixed_capex=150000000, fixed_opex=10000000,
-                               interest_rate=0.04, cpi=0.03, battery_cost_deg=0.09)
+                               interest_rate=0.04, cpi=0.02, battery_cost_deg=0.06)
     start_time = time.time()
     print("irr: ", test.get_irr())
     print("npv: ", test.get_npv(5))

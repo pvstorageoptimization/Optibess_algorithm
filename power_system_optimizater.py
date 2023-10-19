@@ -419,7 +419,7 @@ class NevergradOptimizer(PowerSystemOptimizer):
         params = [ng.p.Scalar(init=min(i * self._def_aug_diff, self._output.num_of_years - 1), lower=0,
                               upper=self._month_bound // 12).set_integer_casting()
                   for i in range(self._max_aug_num)] + \
-                 [ng.p.Scalar(init=temp_aug_table[0, 1], lower=0, upper=self._first_entry_bound * 3).
+                 [ng.p.Scalar(init=temp_aug_table[0, 1], lower=0, upper=self._first_entry_bound * 2).
                   set_integer_casting()] + \
                  [ng.p.Scalar(init=temp_aug_table[1, 1], lower=0, upper=self._first_entry_bound // 2).
                   set_integer_casting() for _ in range(self._initial_aug_num - 1)] + \
