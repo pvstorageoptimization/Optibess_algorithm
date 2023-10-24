@@ -256,8 +256,12 @@ class PvProducer(Producer):
     def _set_pv_peak_power(self, value):
         # if the pvlib option is used calculate pv peak power based on module and number of modules
         if self._number_of_inverters:
-            self._pv_peak_power = (self._module['Impo'] * self._module['Vmpo']) * self._modules_per_string * \
-                                  self._strings_per_inverter * self._number_of_inverters / 1000
+            if 'STC' in self._module:
+                module_peak_power = self._module['STC']
+            else:
+                module_peak_power = self._module['Impo'] * self._module['Vmpo']
+            self._pv_peak_power = module_peak_power * self._modules_per_string * self._strings_per_inverter * \
+                                  self._number_of_inverters / 1000
         else:
             if value is None:
                 raise ValueError("PV peak power should have value for options other than pvlib")

@@ -12,7 +12,6 @@ from Optibess_algorithm.producers import PvProducer, Producer
 
 
 def discharge_algo(h, pre_pv2bess, pv_rest, soc, p_sell, p_buy):
-
     def helper_algo(current_h, current_soc, path=None):
         if path is None:
             path = [0] * (h + 1)
@@ -77,7 +76,7 @@ def discharge_algo(h, pre_pv2bess, pv_rest, soc, p_sell, p_buy):
         #         min(current_soc + y + 2 * z, 0))
         chosen_option = np.argmax([option1, option2, option3])
         path = possible_paths[chosen_option]
-        return max(option1, option2, option3), path#, option4, option5)
+        return max(option1, option2, option3), path  # , option4, option5)
 
     return helper_algo(h, soc)
 
@@ -881,12 +880,46 @@ if __name__ == "__main__":
     # combined_df = pd.concat(output.results)
     # combined_df.to_csv("C:\\Users\\user\\Documents\\solar optimization project\\dario model\\results.csv")
     # print(f"took {time.time() - start_time}")
-    pv_data = [788, 7250, 8928, 7084, 8233, 13669, 11428, 7654, 2204, 0, 0, 0, 0, 0, 0,
-               0, 0]
+    pv_data = [182,
+4749,
+18007,
+33234,
+48337,
+57830,
+66241,
+68734,
+58318,
+36777,
+17392,
+4553,
+0,
+0,
+0,
+0,
+0,
+0,
+0]
     pre_pv2bess = [max(x - grid_size, 0) for x in pv_data]
     pv_rest = [min(grid_size, x) for x in pv_data]
-    prices = [158, 170.9, 173.3, 165.1, 160.8, 157.9, 154.8, 160.2, 175.3, 193.9, 197.5, 197.2, 189.2, 170.2, 150.3,
-              142.1]
+    prices = [76.3,
+88.8,
+121.7,
+144.3,
+134.2,
+114.6,
+92.4,
+80.6,
+72.3,
+66.6,
+72.8,
+93.1,
+117.4,
+146.1,
+173.8,
+204.5,
+149.3,
+119.2,
+107.1]
     prices = [x / 1000 for x in prices]
 
-    print(discharge_algo(15, pre_pv2bess, pv_rest, 0, prices, None))
+    print(discharge_algo(len(prices) - 1, pre_pv2bess, pv_rest, 0, prices, None))

@@ -1,3 +1,4 @@
+import json
 import unittest
 from unittest.mock import patch
 
@@ -38,6 +39,21 @@ class TestProducer(unittest.TestCase):
         self.assertEqual(result.power_output.index[2].month, 1)
         self.assertEqual(result.power_output.index[2].hour, 2)
         self.assertGreater(result.power_output['pv_output'][10], 0)
+        self.assertEqual(round(result.rated_power), 720)
+
+    @patch('Optibess_algorithm.producers.get_pvlib_output')
+    def test_creation_with_pvlib_cec_module(self, pvlib_output_calc):
+        # mock call for function to generated data from pvlib
+        pvlib_output_calc.return_value = pd.read_csv(os.path.join(test_folder,
+                                                                  "output_calculator/pvlib_data_example.csv"),
+                                                     index_col=0,
+                                                     parse_dates=True).squeeze()
+        with open(os.path.join(test_folder, "output_calculator/pv_module_data.json")) as module_data_file:
+            json_content = json.load(module_data_file)
+            module_data = json_content[0]
+        result = PvProducer(latitude=30, longitude=34, number_of_inverters=1000, module=pd.Series(module_data))
+        # check rated power
+        self.assertEqual(result.rated_power, 720)
 
     @patch('Optibess_algorithm.producers.get_pvgis_hourly')
     def test_creation_with_pvgis(self, pvgis_output_calc):

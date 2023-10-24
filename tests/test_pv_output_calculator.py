@@ -1,6 +1,7 @@
+import json
 import os
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, DEFAULT
 import numpy as np
 import pandas as pd
 import pvlib.iotools
@@ -49,6 +50,29 @@ class TestPvOutputCalculator(unittest.TestCase):
         pvlib.pvsystem.Array.assert_called_once()
         pvlib.pvsystem.PVSystem.assert_called_once()
         self.model_chain.assert_called_once()
+        self.model_chain.return_value.run_model.assert_called_once()
+
+    def test_pvlib_output_fixed_cec_module(self):
+        # get module data
+        with open(os.path.join(test_folder, "output_calculator/pv_module_data.json")) as module_data_file:
+            json_content = json.load(module_data_file)
+            module_data = json_content[0]
+        # change model chain implementation
+        self.model_chain.side_effect = [ValueError(), DEFAULT]
+        # call function
+        result = get_pvlib_output(latitude=30, longitude=34, modules_per_string=10, number_of_inverters=100,
+                                  module=pd.Series(module_data))
+        # check data shape
+        self.assertEqual(result.shape[0], 8760, "pvlib output is not in the right shape (Should have 8760 rows)")
+        # check values are in reasonable range
+        self.assertTrue(np.all(result.iloc[0] < 25))
+        # check function calls
+        pvlib.pvsystem.FixedMount.assert_called_once()
+        pvlib.pvsystem.Array.assert_called_once()
+        pvlib.pvsystem.PVSystem.assert_called_once()
+        self.assertEqual(self.model_chain.call_count, 2)
+        self.assertEqual(self.model_chain.call_args[1]['aoi_model'], 'no_loss')
+        self.assertEqual(self.model_chain.call_args[1]['spectral_model'], 'no_loss')
         self.model_chain.return_value.run_model.assert_called_once()
 
     def test_pvlib_output_tracker(self):

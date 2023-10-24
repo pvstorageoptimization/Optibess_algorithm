@@ -76,7 +76,10 @@ def get_pvlib_output(latitude: float, longitude: float, tilt: float = TILT.defau
     system = pvlib.pvsystem.PVSystem(arrays=arrays, inverter_parameters=inverter)
 
     # calculate the output
-    model_chain = pvlib.modelchain.ModelChain(system, location)
+    try:
+        model_chain = pvlib.modelchain.ModelChain(system, location)
+    except ValueError:
+        model_chain = pvlib.modelchain.ModelChain(system, location, aoi_model='no_loss', spectral_model='no_loss')
     model_chain.run_model(tmy)
     # replace nan with 0 (for tracker option, since we get nan for hours without sun)
     output = model_chain.results.ac.fillna(0)
@@ -131,4 +134,4 @@ if __name__ == '__main__':
     # raw_data1 = get_pvgis_hourly(30, 34, pv_peak=10000)
     # print(raw_data1[raw_data1.index.month == 5])
     raw_data1 = get_pvlib_output(latitude=52.5, longitude=13, number_of_inverters=1000)
-    print(raw_data1.head(24))
+    print(raw_data1[3700: 3750])
