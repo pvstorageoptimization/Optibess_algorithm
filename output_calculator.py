@@ -903,6 +903,7 @@ class OutputCalculator:
                 self._calc_grid_to_bess(year)
             else:
                 self._df["grid2bess"] = 0
+                self._df["bess_from_grid"] = 0
             self._calc_power_to_grid(year)
             self._purchased_from_grid.append(self._df["grid2bess"] + self._df["grid2pv"])
             if self._save_all_results:

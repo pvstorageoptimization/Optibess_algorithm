@@ -627,13 +627,17 @@ def flatten_tuples(t):
 
 
 if __name__ == '__main__':
-    storage = LithiumPowerStorage(25, 180000, use_default_aug=True)
-    producer = PvProducer("../../test docs/Ramat hovav.csv", pv_peak_power=300000)
-    output = OutputCalculator(25, 180000, producer, storage, save_all_results=False)
-    test = FinancialCalculator(output, 2272, capex_per_land_unit=215000, capex_per_kwp=370, opex_per_kwp=5,
-                               battery_capex_per_kwh=150, battery_opex_per_kwh=5, battery_connection_capex_per_kw=50,
-                               battery_connection_opex_per_kw=0.5, fixed_capex=150000000, fixed_opex=10000000,
-                               interest_rate=0.04, cpi=0.02, battery_cost_deg=0.05)
+    storage = LithiumPowerStorage(25, 100000, use_default_aug=True)
+    producer = PvProducer("../../test docs/Sushevo_Project.CSV", pv_peak_power=150000)
+    output = OutputCalculator(25, 100000, producer, storage, save_all_results=False, fill_battery_from_grid=False,
+                              bess_discharge_start_hour=17)
+    root_folder = os.path.dirname(os.path.abspath(__file__))
+    tariffs = np.loadtxt(os.path.join(root_folder, "example_tariffs2.csv"), delimiter=",", dtype=float).transpose()
+    tariffs *= 4.3 / 1000
+    test = FinancialCalculator(output, 1000, capex_per_land_unit=215000, capex_per_kwp=370, opex_per_kwp=5,
+                               battery_capex_per_kwh=170, battery_opex_per_kwh=5, battery_connection_capex_per_kw=50,
+                               battery_connection_opex_per_kw=0.5, fixed_capex=15000000, fixed_opex=1000000,
+                               interest_rate=0.04, cpi=0, tariff_table=tariffs)
 
     start_time = time.time()
     optimizer = NevergradOptimizer(test, budget=2000)

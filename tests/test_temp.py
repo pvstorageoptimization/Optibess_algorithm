@@ -14,13 +14,13 @@ from Optibess_algorithm.producers import PvProducer, Producer
 def discharge_algo(h, pre_pv2bess, pv_rest, soc, p_sell, p_buy):
     def helper_algo(current_h, current_soc, path=None):
         if path is None:
-            path = [0] * (h + 1)
+            path = [0] * h
         if current_h < 0:
             if current_soc < 0:
                 return -math.inf, path
             else:
                 return 0, path
-        possible_paths = [[0] * (h + 1) for _ in range(3)]
+        possible_paths = [[0] * h for _ in range(3)]
 
         # discharge option
         if pv_rest[current_h] >= grid_size or (current_h > 0 and p_sell[current_h] < min(p_sell[:current_h])):
@@ -78,7 +78,7 @@ def discharge_algo(h, pre_pv2bess, pv_rest, soc, p_sell, p_buy):
         path = possible_paths[chosen_option]
         return max(option1, option2, option3), path  # , option4, option5)
 
-    return helper_algo(h, soc)
+    return helper_algo(h - 1, soc)
 
 
 def calc_power_to_bess(sell_less_price, buy_less_price, hour_ordering, pv_quan, grid_quan, p, self_cons, charge_loss,
@@ -881,45 +881,45 @@ if __name__ == "__main__":
     # combined_df.to_csv("C:\\Users\\user\\Documents\\solar optimization project\\dario model\\results.csv")
     # print(f"took {time.time() - start_time}")
     pv_data = [182,
-4749,
-18007,
-33234,
-48337,
-57830,
-66241,
-68734,
-58318,
-36777,
-17392,
-4553,
-0,
-0,
-0,
-0,
-0,
-0,
-0]
+               4749,
+               18007,
+               33234,
+               48337,
+               57830,
+               66241,
+               68734,
+               58318,
+               36777,
+               17392,
+               4553,
+               0,
+               0,
+               0,
+               0,
+               0,
+               0,
+               0]
     pre_pv2bess = [max(x - grid_size, 0) for x in pv_data]
     pv_rest = [min(grid_size, x) for x in pv_data]
     prices = [76.3,
-88.8,
-121.7,
-144.3,
-134.2,
-114.6,
-92.4,
-80.6,
-72.3,
-66.6,
-72.8,
-93.1,
-117.4,
-146.1,
-173.8,
-204.5,
-149.3,
-119.2,
-107.1]
+              88.8,
+              121.7,
+              144.3,
+              134.2,
+              114.6,
+              92.4,
+              80.6,
+              72.3,
+              66.6,
+              72.8,
+              93.1,
+              117.4,
+              146.1,
+              173.8,
+              204.5,
+              149.3,
+              119.2,
+              107.1]
     prices = [x / 1000 for x in prices]
 
-    print(discharge_algo(len(prices) - 1, pre_pv2bess, pv_rest, 0, prices, None))
+    print(discharge_algo(len(prices), pre_pv2bess, pv_rest, 0, prices, None))
