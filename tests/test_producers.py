@@ -86,6 +86,11 @@ class TestProducer(unittest.TestCase):
             PvProducer(longitude=34, number_of_inverters=1000)
         self.assertEqual(str(e.exception), "Missing values for parameters for pvlib option")
 
+    def test_creation_pvlib_bifacial_no_albedo(self):
+        with self.assertRaises(ValueError) as e:
+            PvProducer(latitude=30, longitude=34, number_of_inverters=1000, use_bifacial=True, albedo=None)
+        self.assertEqual(str(e.exception), "Missing values for parameters for pvlib option")
+
     def test_creation_file_no_pv_peak_power(self):
         with self.assertRaises(ValueError) as e:
             PvProducer(pv_output_file=os.path.join(test_folder, "test.csv"))
@@ -153,6 +158,11 @@ class TestProducer(unittest.TestCase):
         with self.assertRaises(ValueError) as e:
             PvProducer(number_of_inverters=-5)
         self.assertEqual(str(e.exception), "Number of inverters should be positive")
+
+    def test_creation_incorrect_albedo(self):
+        with self.assertRaises(ValueError) as e:
+            PvProducer(albedo=2)
+        self.assertEqual(str(e.exception), f"Albedo should be between {ALBEDO.min} and {ALBEDO.max}")
 
     def test_creation_incorrect_tilt(self):
         with self.assertRaises(ValueError) as e:

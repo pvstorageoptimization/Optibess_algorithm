@@ -1,5 +1,8 @@
 import time
+import warnings
+
 import pvlib
+from pvlib.bifacial.pvfactors import pvfactors_timeseries
 import pandas as pd
 from enum import Enum, auto
 from Optibess_algorithm.constants import *
@@ -24,7 +27,8 @@ def get_pvlib_output(latitude: float, longitude: float, tilt: float = TILT.defau
                      tech: Tech = Tech.FIXED, modules_per_string: int = DEFAULT_MODULES_PER_STRING,
                      strings_per_inverter: int = DEFAULT_STRINGS_PER_INVERTER,
                      number_of_inverters: int = DEFAULT_NUMBER_OF_INVERTERS, module: pd.Series = MODULE_DEFAULT.copy(),
-                     inverter: pd.Series = INVERTER_DEFAULT.copy()) -> pd.Series:
+                     inverter: pd.Series = INVERTER_DEFAULT.copy(), use_bifacial: bool = DEFAULT_USE_BIFACIAL,
+                     albedo: float = ALBEDO.default) -> pd.Series:
     """
     calculate the output of a pv system using pvlib
     :param latitude: the latitude of the location of the system
@@ -37,11 +41,16 @@ def get_pvlib_output(latitude: float, longitude: float, tilt: float = TILT.defau
     :param number_of_inverters: number of inverters in the system
     :param module: parameters of the pv module (as pandas series)
     :param inverter: parameters of the inverter (as pandas series)
+    :param use_bifacial: flag for bifacial calculation
+    :param albedo: the albedo of the ground for bifacial calculation
     :returns:
         a pandas series with the hourly pv output of the system (with date and hour as index)
     """
     if number_of_inverters <= 0:
         raise ValueError("Number of units should be positive")
+
+    # supressing shapely warnings that occur on import of pvfactors
+    warnings.filterwarnings(action='ignore', module='pvfactors')
 
     # change azimuth to be in range used by pvlib
     if azimuth == 180:
@@ -80,7 +89,25 @@ def get_pvlib_output(latitude: float, longitude: float, tilt: float = TILT.defau
         model_chain = pvlib.modelchain.ModelChain(system, location)
     except ValueError:
         model_chain = pvlib.modelchain.ModelChain(system, location, aoi_model='no_loss', spectral_model='no_loss')
-    model_chain.run_model(tmy)
+
+    # calculate irradiation for bifacial configuration and run model from irradiation
+    if use_bifacial and tech != Tech.EAST_WEST:
+        solar_position = location.get_solarposition(tmy.index)
+        irrad = pvfactors_timeseries(solar_azimuth=solar_position['azimuth'],
+                                     solar_zenith=solar_position['apparent_zenith'],
+                                     surface_azimuth=azimuth, surface_tilt=tilt,
+                                     axis_azimuth=90 if tech == Tech.FIXED else 180, timestamps=tmy.index,
+                                     dni=tmy['dni'], dhi=tmy['dhi'], gcr=0.4, pvrow_height=1, pvrow_width=4,
+                                     albedo=albedo)
+        irrad = pd.concat(irrad, axis=1)
+        print(solar_position)
+        irrad['effective_irradiance'] = (irrad['total_abs_front'] + (irrad['total_abs_back'] * 0.75))
+
+        model_chain.run_model_from_effective_irradiance(irrad)
+    # run model from tmy
+    else:
+        model_chain.run_model(tmy)
+
     # replace nan with 0 (for tracker option, since we get nan for hours without sun)
     output = model_chain.results.ac.fillna(0)    # convert results from modelchain from W to kW
     return output / 1000 * (number_of_inverters if tech != Tech.EAST_WEST else number_of_inverters / 2)
@@ -133,35 +160,7 @@ if __name__ == '__main__':
     # raw_data1 = get_pvgis_hourly(30, 34, pv_peak=10000)
     # print(raw_data1[raw_data1.index.month == 5])
     raw_data1 = get_pvlib_output(latitude=31, longitude=35, number_of_inverters=1000, modules_per_string=29,
-                                 strings_per_inverter=20)
+                                 strings_per_inverter=20, use_bifacial=True)
     raw_data2 = get_pvlib_output(latitude=31, longitude=35, number_of_inverters=1000, modules_per_string=29,
-                                 strings_per_inverter=20, module=pd.Series({
-        "Adjust": 16.05712,
-        "BIPV": 0,
-        "Bifacial": 1,
-        "I_L_ref": 15.175703,
-        "I_mp_ref": 16.87,
-        "I_o_ref": 1.15e-09,
-        "I_sc_ref": 17.68,
-        "PTC": 640.0,
-        "R_s": 0.316688,
-        "R_sh_ref": 287.1022,
-        "STC": 720.0,
-        "T_NOCT": 44.0,
-        "Technology": 2,
-        "V_mp_ref": 42.68,
-        "V_os_ref": 50.74,
-        "a_ref": 1.981696,
-        "alpha_sc": 0.0004,
-        "area": 3.1,
-        "beta_oc": -0.0024,
-        "cell_number": 132,
-        "gamma_ref": -0.5072,
-        "id": 1,
-        "length": 2.384,
-        "manufacturer": "Huasun",
-        "name": "Huasun 720",
-        "owner_id": None,
-        "width": 1.303
-    }))
+                                 strings_per_inverter=20)
     print(sum(raw_data1)/417600, sum(raw_data2)/417600)

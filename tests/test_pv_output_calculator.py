@@ -18,8 +18,11 @@ class TestPvOutputCalculator(unittest.TestCase):
         pvlib.iotools = Mock()
         pvlib.iotools.get_pvgis_tmy.return_value = [pd.read_csv(os.path.join(test_folder,
                                                                              "output_calculator/tmy_example.csv"),
-                                                                parse_dates=True,
-                                                                index_col=0), ]
+                                                                parse_dates=True, index_col=0), ]
+        patch("Optibess_algorithm.pv_output_calculator.pvfactors_timeseries",
+              return_value=[pd.read_csv(os.path.join(test_folder,
+                                                     "output_calculator/irrad_example.csv"),
+                                        parse_dates=True, index_col=0)]).start()
         pvlib.iotools.get_pvgis_hourly.return_value = [pd.read_csv(os.path.join(test_folder,
                                                                                 "output_calculator"
                                                                                 "/pvgis_hourly_data_example.csv"),
@@ -33,7 +36,7 @@ class TestPvOutputCalculator(unittest.TestCase):
         self.model_chain = patch('pvlib.modelchain.ModelChain').start()
         self.model_chain.return_value.results.ac = pd.read_csv(os.path.join(test_folder,
                                                                             "output_calculator"
-                                                                            "/model_chin_ac_results_example.csv"),
+                                                                            "/model_chain_ac_results_example.csv"),
                                                                parse_dates=True, index_col=0).squeeze()
 
     def tearDown(self) -> None:
@@ -102,6 +105,24 @@ class TestPvOutputCalculator(unittest.TestCase):
         pvlib.pvsystem.PVSystem.assert_called_once()
         self.model_chain.assert_called_once()
         self.model_chain.return_value.run_model.assert_called_once()
+
+    def test_pvlib_output_fixed_bifacial(self):
+        # mock location
+        pvlib.location.Location = patch("pvlib.location.Location").start()
+        pvlib.location.Location.return_value.get_solarposition.return_value = \
+            pd.read_csv(os.path.join(test_folder, "output_calculator/solar_position_example.csv"),
+                        parse_dates=True, index_col=0)
+        # call function
+        result = get_pvlib_output(latitude=30, longitude=34, modules_per_string=10, number_of_inverters=100,
+                                  use_bifacial=True)
+        # check data shape
+        self.assertEqual(result.shape[0], 8760, "pvlib output is not in the right shape (Should have 8760 rows)")
+        # check function calls
+        pvlib.pvsystem.FixedMount.assert_called_once()
+        pvlib.pvsystem.Array.assert_called_once()
+        pvlib.pvsystem.PVSystem.assert_called_once()
+        self.model_chain.assert_called_once()
+        self.model_chain.return_value.run_model_from_effective_irradiance.assert_called_once()
 
     def test_pvlib_output_incorrect_arg(self):
         # check error is raised when number of inverters is 0

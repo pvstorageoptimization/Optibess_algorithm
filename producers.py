@@ -61,6 +61,8 @@ class PvProducer(Producer):
                  number_of_inverters: int = None,
                  module: pd.Series = MODULE_DEFAULT,
                  inverter: pd.Series = INVERTER_DEFAULT,
+                 use_bifacial: bool = DEFAULT_USE_BIFACIAL,
+                 albedo: float = ALBEDO.default,
                  tilt: float = TILT.default,
                  azimuth: float = AZIMUTH.default,
                  losses: float = DEFAULT_LOSSES,
@@ -81,6 +83,8 @@ class PvProducer(Producer):
                no file is provided, uses pvlib)
         :param module: parameters of the pv module (as pandas series) (for pvlib option, ignored if file is supplied)
         :param inverter: parameters of the inverter (as pandas series) (for pvlib option, ignored if file is supplied)
+        :param use_bifacial: flag for bifacial calculation in pvlib
+        :param albedo: ground albedo for bifacial calculation
         :param tilt: the tilt angle of th system (ignored if file is supplied)
         :param azimuth: the azimuth of the system (ignored if file is supplied)
         :param losses: the total losses of the array (ignored if file is supplied)
@@ -99,6 +103,8 @@ class PvProducer(Producer):
         self._set_number_of_inverters(number_of_inverters)
         self._module = module
         self._inverter = inverter
+        self._use_bifacial = use_bifacial
+        self._set_albedo(albedo)
         self._set_tilt(tilt)
         self._set_azimuth(azimuth)
         self._set_losses(losses)
@@ -118,6 +124,8 @@ class PvProducer(Producer):
                 if any(param is None for param in [self._latitude, self._longitude, self._tilt, self._azimuth,
                                                    self._tech, self._modules_per_string, self._strings_per_inverter,
                                                    self._module, self._inverter]):
+                    raise ValueError("Missing values for parameters for pvlib option")
+                if self._use_bifacial and self._albedo is None:
                     raise ValueError("Missing values for parameters for pvlib option")
             else:
                 if any(param is None for param in [self._latitude, self._longitude, self._tilt, self._azimuth,
@@ -143,7 +151,7 @@ class PvProducer(Producer):
                                                                    self._azimuth, self._tech, self._modules_per_string,
                                                                    self._strings_per_inverter,
                                                                    self._number_of_inverters, self._module,
-                                                                   self._inverter))
+                                                                   self._inverter, self._use_bifacial, self._albedo))
             # pvgis option
             else:
                 self._power_output = pd.DataFrame(get_pvgis_hourly(self._latitude, self._longitude, self._tilt,
@@ -221,6 +229,15 @@ class PvProducer(Producer):
     @property
     def inverter(self):
         return self._inverter
+
+    @property
+    def albedo(self):
+        return self._albedo
+
+    def _set_albedo(self, value: float):
+        if value is not None and not ALBEDO.min <= value <= ALBEDO.max:
+            raise ValueError(f"Albedo should be between {ALBEDO.min} and {ALBEDO.max}")
+        self._albedo = value
 
     @property
     def tilt(self):
