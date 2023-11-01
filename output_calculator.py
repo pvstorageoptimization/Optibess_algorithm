@@ -975,9 +975,9 @@ class OutputCalculator:
 
 if __name__ == '__main__':
     year_num = 25
-    connection = 5000
-    storage = LithiumPowerStorage(year_num, connection, battery_hours=2, use_default_aug=True)
-                                  # aug_table=((0, 846), (72, 1093), (140, 179), (200, 200)))
+    connection = 180000
+    storage = LithiumPowerStorage(year_num, connection, #battery_hours=2, use_default_aug=True)
+                                  aug_table=((0, 846), (72, 1093), (140, 179), (200, 200)))
 
     # file
     prod = PvProducer("../media/test.csv", pv_peak_power=13000)
@@ -996,6 +996,11 @@ if __name__ == '__main__':
 
     start_time = time.time()
     test.run()
-    print(f"calculation took: {time.time() - start_time} seconds")
     np.set_printoptions(linewidth=1000)
+    print(f"calculation took: {time.time() - start_time} seconds")
+    print(test.monthly_averages(stat="bess_from_pv"))
+    print("-----------------------------------------------------------------------------------")
+    print(test.monthly_averages(stat="bess_from_grid"))
+    print("-----------------------------------------------------------------------------------")
+    print(test.monthly_averages(stat="grid_from_bess"))
     # print(test.monthly_averages(stat="pv_output"))

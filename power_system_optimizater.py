@@ -10,6 +10,7 @@ import gradient_free_optimizers as gfo
 import nevergrad as ng
 import pygad as pg
 
+from Optibess_algorithm.constants import MAX_BATTERY_HOURS
 from Optibess_algorithm.financial_calculator import FinancialCalculator
 from Optibess_algorithm.output_calculator import OutputCalculator
 from Optibess_algorithm.power_storage import LithiumPowerStorage
@@ -388,16 +389,19 @@ class NevergradOptimizer(PowerSystemOptimizer):
 
     def __init__(self, financial_calculator: FinancialCalculator = None, use_memory: bool = True, max_aug_num: int = 6,
                  initial_aug_num: int = None, budget: int = 2000, max_no_change_steps: int = None,
-                 min_change_size: float = 0.0001):
+                 min_change_size: float = 0.0001, verbosity: int = 2):
         """
         initialize the simulation objects for the optimizer
         :param financial_calculator: calculator to use for objective function
         :param use_memory: whether to use memory to get score for already calculated values
+        :param verbosity: print information from the optimization algorithm (0: None, 1: fitness values, 2: fitness
+            values and recommendation)
         """
         super().__init__(financial_calculator, use_memory, max_aug_num, initial_aug_num, budget)
         self._max_no_change_steps = max_no_change_steps
         self._min_change_size = min_change_size
         self._no_change_steps = 0
+        self._verbosity = verbosity
 
     def get_aug_table(self, arr) -> tuple[tuple[int, int], ...]:
         aug_table = []
@@ -436,8 +440,16 @@ class NevergradOptimizer(PowerSystemOptimizer):
             """
             return all([para[i + 1] - para[i] >= self._month_diff // 12 for i in range(0, self._max_aug_num - 1)])
 
+        def check_battery_size(para):
+            if not self._storage.check_battery_size(self.get_aug_table(para)):
+                logging.warning(f"The battery is bigger than {MAX_BATTERY_HOURS} battery hour with augmentations "
+                                f"{para}")
+                return False
+            return True
+
         self._constraints = constraints_gen
         self._instru.register_cheap_constraint(self._constraints)
+        self._instru.register_cheap_constraint(check_battery_size)
 
     def _create_optimizer(self):
         """
@@ -488,7 +500,7 @@ class NevergradOptimizer(PowerSystemOptimizer):
         self._register_callbacks(opt, progress_recorder)
 
         try:
-            recommendation = opt.minimize(self.minimize_objective, verbosity=2)
+            recommendation = opt.minimize(self.minimize_objective, verbosity=self._verbosity)
         except ng.errors.NevergradEarlyStopping:
             recommendation = opt.provide_recommendation()
         return recommendation.value, recommendation.loss

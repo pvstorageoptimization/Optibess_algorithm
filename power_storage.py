@@ -1,3 +1,4 @@
+import warnings
 from abc import ABC, abstractmethod
 from math import ceil
 
@@ -249,8 +250,8 @@ class LithiumPowerStorage(PowerStorage):
         augmentation table
         :param new_value: the new value for the hours supplied by the battery
         """
-        if not 0 <= new_value <= 8:
-            raise ValueError("Battery hours should be between 0 and 8")
+        if not 0 <= new_value <= MAX_BATTERY_HOURS:
+            raise ValueError(f"Battery hours should be between 0 and {MAX_BATTERY_HOURS}")
         self._battery_hours = new_value
         prelim_battery_bol = new_value * self._connection_size / (self._rte_table[0] * (1 - self._connection_loss) *
                                                                   self._dod_table[0])
@@ -292,4 +293,25 @@ class LithiumPowerStorage(PowerStorage):
         # calculate each augmentation in kwh
         aug_cap = np.array([[aug[1] * self._block_size] for aug in self._aug_table])
         self._aug_table = np.concatenate((self._aug_table, aug_cap), axis=1)
+
+        # check total battery size is not too big
+        if not self.check_battery_size(value):
+            warnings.warn(f"Storage size is bigger than {MAX_BATTERY_HOURS} battery hours. "
+                          f"This can cause charge and discharge to overlap and provide inaccurate results!",
+                          UserWarning)
+
+    def check_battery_size(self, value: tuple[tuple[int, int], ...]):
+        """
+        check if the battery size is bigger the maximum number of hours after each augmentation. return false if it is
+        bigger.
+        """
+        for i in range(len(value)):
+            battery_size = 0
+            for j in range(i + 1):
+                diff = (value[i][0] - value[j][0]) // 12
+                battery_size += value[j][1] * self._block_size * self._degradation_table[diff] * \
+                                self._dod_table[diff]
+            if battery_size * (1 - self._connection_loss) > self._connection_size * MAX_BATTERY_HOURS:
+                return False
+        return True
     # endregion
