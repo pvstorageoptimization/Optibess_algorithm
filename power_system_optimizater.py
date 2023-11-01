@@ -1,3 +1,4 @@
+import logging
 import os
 import time
 from abc import ABC, abstractmethod
@@ -96,11 +97,11 @@ class PowerSystemOptimizer(ABC):
         """
         # create candid solution from parameters
         candid = self.get_candid(arr)
-        print(candid)
+        logging.info(candid)
         aug_table = candid[0]
         # print and save if this is the first solution with x augmentations
         if not self._first_aug_of_size[len(aug_table)]:
-            print('\x1b[6;30;42m' + f'first aug of size {len(aug_table)}' + '\x1b[0m')
+            logging.info('\x1b[6;30;42m' + f'first aug of size {len(aug_table)}' + '\x1b[0m')
             self._first_aug_of_size[len(aug_table)] = True
         # if optimizer uses memory and has the value for this solution in memory use the value in memory
         if self._use_memory:
@@ -177,7 +178,7 @@ class GFOOptimizer(PowerSystemOptimizer):
                     aug_table.append((arr[f"x{i}"], arr[f"x{i + num_of_aug}"]))
             else:
                 break
-        print(aug_table)
+        logging.info(aug_table)
         return tuple(aug_table)
 
     def get_candid(self, arr):
@@ -232,7 +233,7 @@ class MysticOptimizer(PowerSystemOptimizer):
                 aug_table.append((arr[i], arr[i + num_of_aug]))
             else:
                 break
-        print(aug_table)
+        logging.info(aug_table)
         return tuple(aug_table)
 
     def _set_variables(self):
@@ -256,7 +257,7 @@ class MysticOptimizer(PowerSystemOptimizer):
     def _optimize(self, progress_recorder=None):
         result = diffev2(self.minimize_objective, x0=self._x0, bounds=self._bounds, constraints=self._constraints,
                          npop=10, gtol=50, full_output=True)
-        print(result)
+        logging.info(result)
 
 
 class PyGadOptimizer(PowerSystemOptimizer):
@@ -277,7 +278,7 @@ class PyGadOptimizer(PowerSystemOptimizer):
                     aug_table.append((arr[i], arr[i + num_of_aug]))
             else:
                 break
-        print(aug_table)
+        logging.info(aug_table)
         return tuple(aug_table)
 
     def fitness_func(self, ga_instance, sol, sol_idx):
@@ -361,7 +362,7 @@ class PyGadOptimizer(PowerSystemOptimizer):
             if self._best_score is None or ga_inst.last_generation_fitness[best_match_idx] > self._best_score:
                 self._best_score = ga_inst.last_generation_fitness[best_match_idx]
                 self._best_solution = ga_inst.population[best_match_idx, :].copy()
-            print(f"generation: {ga_inst.generations_completed}")
+            logging.info(f"generation: {ga_inst.generations_completed}")
 
         ga_instance = pg.GA(
             num_generations=300,
@@ -379,7 +380,7 @@ class PyGadOptimizer(PowerSystemOptimizer):
             # stop_criteria="saturate_10"
         )
         ga_instance.run()
-        # print(ga_instance.best_solution(), f"number of generations: {ga_instance.generations_completed}")
+        # logging.info(ga_instance.best_solution(), f"number of generations: {ga_instance.generations_completed}")
         return self._best_solution, self._best_score
 
 
@@ -542,10 +543,10 @@ class NevergradDerivativeOptimizer(NevergradOptimizer):
         :param arr: a collection (array-like, dict, tensor, etc.) containing info for a candid
         """
         candid = self.get_candid(arr)
-        print(candid)
+        logging.info(candid)
         aug_table = candid[0]
         if not self._first_aug_of_size[len(aug_table)]:
-            print('\x1b[6;30;42m' + f'first aug of size {len(aug_table)}' + '\x1b[0m')
+            logging.info('\x1b[6;30;42m' + f'first aug of size {len(aug_table)}' + '\x1b[0m')
             self._first_aug_of_size[len(aug_table)] = True
         if self._use_memory and self._step % 100 != 0:
             if candid in self._memory:
@@ -559,7 +560,7 @@ class NevergradDerivativeOptimizer(NevergradOptimizer):
             self._step += 1
             self._derivatives_calcs += 1
             result = self._last_result + np.dot(np.array(arr) - self._last_parameters, self._derivatives)
-            # print(np.array(arr) - self._last_parameters, self._derivatives,
+            # logging.info(np.array(arr) - self._last_parameters, self._derivatives,
             #       np.dot(np.array(arr) - self._last_parameters, self._derivatives), result)
             if self._use_memory:
                 self._results.append(result)
@@ -627,6 +628,9 @@ def flatten_tuples(t):
 
 
 if __name__ == '__main__':
+    # make info loggin show
+    logging.getLogger().setLevel(logging.INFO)
+    # setup power system
     storage = LithiumPowerStorage(25, 100000, use_default_aug=True)
     producer = PvProducer("../../test docs/Sushevo_Project.CSV", pv_peak_power=150000)
     output = OutputCalculator(25, 100000, producer, storage, save_all_results=False, fill_battery_from_grid=False,
@@ -640,9 +644,11 @@ if __name__ == '__main__':
                                battery_connection_opex_per_kw=0.5, fixed_capex=15000000, fixed_opex=1000000,
                                interest_rate=0.04, cpi=0.02, tariff_table=tariffs)
 
+    # start optimization
     start_time = time.time()
     optimizer = NevergradOptimizer(test, budget=2000)
     opt_output, res = optimizer.run()
+    # print results
     print(optimizer.get_candid(opt_output), res)
     print(optimizer._first_aug_of_size)
     print(f"Optimization took {time.time() - start_time} seconds")

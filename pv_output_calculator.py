@@ -100,7 +100,6 @@ def get_pvlib_output(latitude: float, longitude: float, tilt: float = TILT.defau
                                      dni=tmy['dni'], dhi=tmy['dhi'], gcr=0.4, pvrow_height=1, pvrow_width=4,
                                      albedo=albedo)
         irrad = pd.concat(irrad, axis=1)
-        print(solar_position)
         irrad['effective_irradiance'] = (irrad['total_abs_front'] + (irrad['total_abs_back'] * 0.75))
 
         model_chain.run_model_from_effective_irradiance(irrad)
