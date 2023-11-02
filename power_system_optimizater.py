@@ -640,7 +640,7 @@ def flatten_tuples(t):
 
 
 if __name__ == '__main__':
-    # make info loggin show
+    # make info logging show
     logging.getLogger().setLevel(logging.INFO)
     # setup power system
     storage = LithiumPowerStorage(25, 100000, use_default_aug=True)

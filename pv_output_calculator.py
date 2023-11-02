@@ -49,7 +49,7 @@ def get_pvlib_output(latitude: float, longitude: float, tilt: float = TILT.defau
     if number_of_inverters <= 0:
         raise ValueError("Number of units should be positive")
 
-    # supressing shapely warnings that occur on import of pvfactors
+    # suppressing shapely warnings that occur on import of pvfactors
     warnings.filterwarnings(action='ignore', module='pvfactors')
 
     # change azimuth to be in range used by pvlib

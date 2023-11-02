@@ -843,8 +843,8 @@ class OutputCalculatorTariff(OutputCalculator):
 if __name__ == "__main__":
     grid_size = 100000
     pcs = 12500
-    capacity = 50000
-    rte = 0.87
+    capacity = 25000
+    rte = 0.95
     # charge_loss = 0.035
     # trans_loss = 0.024
     # grid_bess_loss = 0.04
@@ -880,46 +880,44 @@ if __name__ == "__main__":
     # combined_df = pd.concat(output.results)
     # combined_df.to_csv("C:\\Users\\user\\Documents\\solar optimization project\\dario model\\results.csv")
     # print(f"took {time.time() - start_time}")
-    pv_data = [182,
-               4749,
-               18007,
-               33234,
-               48337,
-               57830,
-               66241,
-               68734,
-               58318,
-               36777,
-               17392,
-               4553,
-               0,
-               0,
-               0,
-               0,
-               0,
-               0,
-               0]
+    pv_data = [3318,
+14956,
+25614,
+30182,
+32597,
+29907,
+22737,
+14167,
+5188,
+0,
+0,
+0,
+0,
+0,
+0,
+0,
+0
+]
     pre_pv2bess = [max(x - grid_size, 0) for x in pv_data]
     pv_rest = [min(grid_size, x) for x in pv_data]
-    prices = [76.3,
-              88.8,
-              121.7,
-              144.3,
-              134.2,
-              114.6,
-              92.4,
-              80.6,
-              72.3,
-              66.6,
-              72.8,
-              93.1,
-              117.4,
-              146.1,
-              173.8,
-              204.5,
-              149.3,
-              119.2,
-              107.1]
+    prices = [115.9,
+130.9,
+137.8,
+132.7,
+124.3,
+120.0,
+116.2,
+113.3,
+117.1,
+128.0,
+139.8,
+151.7,
+154.4,
+149.0,
+133.7,
+120.7,
+115.0
+]
     prices = [x / 1000 for x in prices]
 
     print(discharge_algo(len(prices), pre_pv2bess, pv_rest, 0, prices, None))
