@@ -106,7 +106,51 @@ class TestPvOutputCalculator(unittest.TestCase):
         self.model_chain.assert_called_once()
         self.model_chain.return_value.run_model.assert_called_once()
 
-    def test_pvlib_output_fixed_bifacial(self):
+    def test_pvlib_output_fixed_cec_module_bifacial(self):
+        # get module data for bifacial
+        with open(os.path.join(test_folder, "output_calculator/pv_module_data.json")) as module_data_file:
+            json_content = json.load(module_data_file)
+            module_data = json_content[0]
+        # mock location
+        pvlib.location.Location = patch("pvlib.location.Location").start()
+        pvlib.location.Location.return_value.get_solarposition.return_value = \
+            pd.read_csv(os.path.join(test_folder, "output_calculator/solar_position_example.csv"),
+                        parse_dates=True, index_col=0)
+        # call function
+        result = get_pvlib_output(latitude=30, longitude=34, modules_per_string=10, number_of_inverters=100,
+                                  use_bifacial=True, module=pd.Series(module_data))
+        # check data shape
+        self.assertEqual(result.shape[0], 8760, "pvlib output is not in the right shape (Should have 8760 rows)")
+        # check function calls
+        pvlib.pvsystem.FixedMount.assert_called_once()
+        pvlib.pvsystem.Array.assert_called_once()
+        pvlib.pvsystem.PVSystem.assert_called_once()
+        self.model_chain.assert_called_once()
+        self.model_chain.return_value.run_model_from_effective_irradiance.assert_called_once()
+
+    def test_pvlib_output_fixed_non_bifacial_cec_module_bifacial(self):
+        # get module data for non bifacial module
+        with open(os.path.join(test_folder, "output_calculator/pv_module_data.json")) as module_data_file:
+            json_content = json.load(module_data_file)
+            module_data = json_content[2]
+        # mock location
+        pvlib.location.Location = patch("pvlib.location.Location").start()
+        pvlib.location.Location.return_value.get_solarposition.return_value = \
+            pd.read_csv(os.path.join(test_folder, "output_calculator/solar_position_example.csv"),
+                        parse_dates=True, index_col=0)
+        # call function
+        result = get_pvlib_output(latitude=30, longitude=34, modules_per_string=10, number_of_inverters=100,
+                                  use_bifacial=True, module=pd.Series(module_data))
+        # check data shape
+        self.assertEqual(result.shape[0], 8760, "pvlib output is not in the right shape (Should have 8760 rows)")
+        # check function calls
+        pvlib.pvsystem.FixedMount.assert_called_once()
+        pvlib.pvsystem.Array.assert_called_once()
+        pvlib.pvsystem.PVSystem.assert_called_once()
+        self.model_chain.assert_called_once()
+        self.model_chain.return_value.run_model_from_effective_irradiance.assert_not_called()
+
+    def test_pvlib_output_fixed_sandia_module_bifacial(self):
         # mock location
         pvlib.location.Location = patch("pvlib.location.Location").start()
         pvlib.location.Location.return_value.get_solarposition.return_value = \
@@ -122,7 +166,7 @@ class TestPvOutputCalculator(unittest.TestCase):
         pvlib.pvsystem.Array.assert_called_once()
         pvlib.pvsystem.PVSystem.assert_called_once()
         self.model_chain.assert_called_once()
-        self.model_chain.return_value.run_model_from_effective_irradiance.assert_called_once()
+        self.model_chain.return_value.run_model_from_effective_irradiance.assert_not_called()
 
     def test_pvlib_output_incorrect_arg(self):
         # check error is raised when number of inverters is 0
