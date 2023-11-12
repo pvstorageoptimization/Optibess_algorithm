@@ -1,6 +1,6 @@
 import warnings
 from abc import ABC, abstractmethod
-from math import ceil
+from math import ceil, floor
 
 import numpy as np
 from Optibess_algorithm.constants import *
@@ -254,18 +254,21 @@ class LithiumPowerStorage(PowerStorage):
             raise ValueError(f"Battery hours should be between 0 and {MAX_BATTERY_HOURS}")
         self._battery_hours = new_value
         prelim_battery_bol = new_value * self._connection_size / (self._rte_table[0] * (1 - self._connection_loss) *
-                                                                  self._dod_table[0])
+                                                                  self._dod_table[0] * self._degradation_table[0])
         # add self consumption for active hours + 1 (plus a little more for additional self consumption need for the
         # added amount of power for the self consumption
         self_consumption = prelim_battery_bol * self._active_self_consumption * 1.1 * (new_value + 1)
         self._battery_bol = prelim_battery_bol + self_consumption
-        self._number_of_blocks = ceil(self._battery_bol / self._block_size)
+        self._number_of_blocks = floor(self._battery_bol / self._block_size)
         self._battery_bol = self._number_of_blocks * self._block_size
 
         # change augmentation table
         if self._use_default_aug:
-            self.aug_table = ((0, self._number_of_blocks), (96, ceil(0.2 * self._number_of_blocks)),
-                              (192, ceil(0.2 * self._number_of_blocks)))
+            self.aug_table = ((0, self._number_of_blocks),
+                              (96, floor((1 - self._degradation_table[8]) * self._number_of_blocks)),
+                              (192, floor((1 - self._degradation_table[16]) * self._number_of_blocks -
+                                          self._degradation_table[8] * (1 - self._degradation_table[8]) *
+                                          self._number_of_blocks)))
         else:
             self.aug_table = ((0, self._number_of_blocks),)
 
@@ -310,8 +313,9 @@ class LithiumPowerStorage(PowerStorage):
             for j in range(i + 1):
                 diff = (value[i][0] - value[j][0]) // 12
                 battery_size += value[j][1] * self._block_size * self._degradation_table[diff] * \
-                                self._dod_table[diff]
-            if battery_size * (1 - self._connection_loss) > self._connection_size * MAX_BATTERY_HOURS:
+                                self._dod_table[diff] * self._rte_table[diff] * (1 - self._connection_loss) * \
+                                (1 - self._active_self_consumption * 1.1 * (MAX_BATTERY_HOURS + 1))
+            if battery_size > self._connection_size * MAX_BATTERY_HOURS:
                 return False
         return True
     # endregion

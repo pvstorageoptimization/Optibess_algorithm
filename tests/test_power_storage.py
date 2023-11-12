@@ -8,12 +8,12 @@ class PowerStorageTest(unittest.TestCase):
 
     def test_creation_minimal(self):
         result = LithiumPowerStorage(num_of_years=25, connection_size=5000)
-        nptesting.assert_array_equal(result.aug_table, np.array([[0, 84, 31309.824], ]))
+        nptesting.assert_array_equal(result.aug_table, np.array([[0, 83, 30937.088], ]))
 
     def test_creation_default_aug(self):
         result = LithiumPowerStorage(num_of_years=25, connection_size=5000, use_default_aug=True)
-        nptesting.assert_array_equal(result.aug_table, np.array([[0, 84, 31309.824], [96, 17, 6336.512],
-                                                                 [192, 17, 6336.512]]))
+        nptesting.assert_array_equal(result.aug_table, np.array([[0, 83, 30937.088], [96, 16, 5963.776],
+                                                                 [192, 11, 4100.096]]))
 
     def test_creation_aug_table(self):
         result = LithiumPowerStorage(num_of_years=25, connection_size=5000, aug_table=((0, 50), (80, 20), (150, 30)))
@@ -142,3 +142,17 @@ class PowerStorageTest(unittest.TestCase):
         result.set_aug_table(((0, 20), (20, 10), (60, 10)), False)
         # check output
         nptesting.assert_array_equal(result.aug_table, ((0, 20, 200), (20, 10, 100), (60, 10, 100)))
+
+    def test_check_battery_size_valid(self):
+        # create storage system and call function
+        storage_system = LithiumPowerStorage(num_of_years=25, connection_size=5000)
+        result = storage_system.check_battery_size(((0, 135), (96, 22), (192, 19)))
+        # check output
+        self.assertTrue(result)
+
+    def test_check_battery_size_invalid(self):
+        # create storage system and call function
+        storage_system = LithiumPowerStorage(num_of_years=25, connection_size=5000)
+        result = storage_system.check_battery_size(((0, 136), (96, 22), (192, 20)))
+        # check output
+        self.assertFalse(result)
