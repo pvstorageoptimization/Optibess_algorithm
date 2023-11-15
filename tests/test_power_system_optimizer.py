@@ -26,6 +26,7 @@ class TestPowerSystemOptimizer(unittest.TestCase):
         type(self.output).aug_table = np.array([[0, 70, 7000], [96, 20, 2000], [192, 10, 1000]])
         type(self.finance).output_calculator = self.output
         self.power_storage = Mock(spec=PowerStorage)
+        self.power_storage.check_battery_size = Mock(return_value=True)
         type(self.output).power_storage = self.power_storage
 
     def test_creation_calculator_only(self):
@@ -145,5 +146,5 @@ class TestPowerSystemOptimizer(unittest.TestCase):
         result = opt.run(progress_recorder)
         self.assertEqual(type(result[0]), tuple)
         self.assertEqual(type(result[1]), float)
-        progress_recorder.set_progress.assert_has_calls([call(i) for i in range(1, 5)])
+        progress_recorder.set_progress.assert_has_calls([call(i, 4) for i in range(1, 5)])
         self.assertEqual(progress_recorder.set_progress.call_count, 4)

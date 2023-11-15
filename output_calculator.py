@@ -348,7 +348,7 @@ class OutputCalculator:
         self._pcs_power = self._grid_size / (self._power_storage.rte_table[0] * (1 - self._grid_bess_loss)) + \
                           2 * total_battery_nameplate * self._power_storage.active_self_consumption
         # if total battery is small compare to grid size limit pcs by it size instead by grid size
-        self._pcs_power = min(sum(self._power_storage.aug_table[:, 2]) // 4, self._pcs_power)
+        # self._pcs_power = min(sum(self._power_storage.aug_table[:, 2]) // 4, self._pcs_power)
 
     @property
     def aug_table(self):

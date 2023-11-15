@@ -474,7 +474,7 @@ class NevergradOptimizer(PowerSystemOptimizer):
         """
         # updates the progress of the optimizer if a recorder is provided
         def update_progress(optim, candide, value):
-            progress_recorder.set_progress(optim.num_ask)
+            progress_recorder.set_progress(optim.num_ask, optim.budget)
 
         if progress_recorder:
             opt.register_callback("tell", update_progress)
