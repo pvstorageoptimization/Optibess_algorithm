@@ -17,7 +17,7 @@ class Producer(ABC):
     @abstractmethod
     def rated_power(self) -> int:
         """
-        return the rated power of the producer
+        the rated power of the producer
         """
         pass
 
@@ -25,7 +25,7 @@ class Producer(ABC):
     @abstractmethod
     def power_output(self) -> pd.DataFrame:
         """
-        returns the power output of the producer as a pandas dataframe (index time, 1 column with power output)
+        the power output of the producer as a pandas dataframe (index time, 1 column with power output)
         """
         pass
 
@@ -33,7 +33,7 @@ class Producer(ABC):
     @abstractmethod
     def power_cost(self) -> pd.DataFrame:
         """
-        returns the time-depended cost of power as pandas dataframe (index time, 1 column with cost in shekels)
+        the time-depended cost of power as pandas dataframe (index time, 1 column with cost in shekels)
         """
         pass
 
@@ -41,7 +41,7 @@ class Producer(ABC):
     @abstractmethod
     def annual_deg(self):
         """
-        returns the annual degradation of the system
+        the annual degradation of the system
         """
         pass
 
@@ -171,14 +171,23 @@ class PvProducer(Producer):
     # region Properties
     @property
     def pv_output_file(self):
+        """
+        the name of the file containing the power output of the producer
+        """
         return self._pv_output_file
 
     @property
     def time_zone(self):
+        """
+        the timezone in which the system is installed
+        """
         return self._time_zone
 
     @property
     def latitude(self):
+        """
+        the latitude in which the system is installed
+        """
         return self._latitude
 
     def _set_latitude(self, value):
@@ -188,6 +197,9 @@ class PvProducer(Producer):
 
     @property
     def longitude(self):
+        """
+        the longitude in which the system is installed
+        """
         return self._longitude
 
     def _set_longitude(self, value):
@@ -197,6 +209,9 @@ class PvProducer(Producer):
 
     @property
     def modules_per_string(self):
+        """
+        the number of modules in each electronic string
+        """
         return self._modules_per_string
 
     def _set_modules_per_string(self, value):
@@ -206,6 +221,9 @@ class PvProducer(Producer):
 
     @property
     def strings_per_inverter(self):
+        """
+        the number of string connected to each inverter
+        """
         return self._strings_per_inverter
 
     def _set_strings_per_inverter(self, value):
@@ -215,6 +233,9 @@ class PvProducer(Producer):
 
     @property
     def number_of_inverters(self):
+        """
+        the number of inverters in the system
+        """
         return self._number_of_inverters
 
     def _set_number_of_inverters(self, value):
@@ -224,14 +245,23 @@ class PvProducer(Producer):
 
     @property
     def module(self):
+        """
+        a pandas series with the parameters for the modules
+        """
         return self._module
 
     @property
     def inverter(self):
+        """
+        a pandas series with the parameters for the inverter
+        """
         return self._inverter
 
     @property
     def albedo(self):
+        """
+        The fraction of sunlight diffusely reflected by the ground
+        """
         return self._albedo
 
     def _set_albedo(self, value: float):
@@ -241,6 +271,9 @@ class PvProducer(Producer):
 
     @property
     def tilt(self):
+        """
+        the angle of the PV array from the horizon (in degrees)
+        """
         return self._tilt
 
     def _set_tilt(self, value):
@@ -250,6 +283,9 @@ class PvProducer(Producer):
 
     @property
     def azimuth(self):
+        """
+        the angle from the true south to which the PV array is facing (in degrees) (0 is south)
+        """
         return self._azimuth
 
     def _set_azimuth(self, value):
@@ -259,6 +295,9 @@ class PvProducer(Producer):
 
     @property
     def losses(self):
+        """
+        the total losses of the system
+        """
         return self._losses
 
     def _set_losses(self, value):
@@ -288,6 +327,9 @@ class PvProducer(Producer):
 
     @property
     def tech(self):
+        """
+        the technology used for the PV tables
+        """
         return self._tech
 
     @property

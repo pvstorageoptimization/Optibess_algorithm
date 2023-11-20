@@ -27,6 +27,9 @@ class PowerSystemOptimizer(ABC):
         initialize the simulation objects for the optimizer
         :param financial_calculator: calculator to use for objective function
         :param use_memory: whether to use memory to get score for already calculated values
+        :param max_aug_num: the maximum number of augmentations the optimizer will try in a solution
+        :param initial_aug_num: the number of augmentation in the initial guess
+        :param budget: the number of simulation to use for optimization
         """
         # check inputs are in the expected range
         if max_aug_num < 1:
@@ -394,6 +397,12 @@ class NevergradOptimizer(PowerSystemOptimizer):
         initialize the simulation objects for the optimizer
         :param financial_calculator: calculator to use for objective function
         :param use_memory: whether to use memory to get score for already calculated values
+        :param max_aug_num: the maximum number of augmentations the optimizer will try in a solution
+        :param initial_aug_num: the number of augmentation in the initial guess
+        :param budget: the number of simulation to use for optimization
+        :param max_no_change_steps: the maximum number of optimization step with no change before stopping (if none,
+            does not use early stopping)
+        :param min_change_size: the minimum change between steps to consider as a change for early stopping
         :param verbosity: print information from the optimization algorithm (0: None, 1: fitness values, 2: fitness
             values and recommendation)
         """

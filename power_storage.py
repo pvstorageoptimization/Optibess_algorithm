@@ -1,8 +1,7 @@
 import warnings
 from abc import ABC, abstractmethod
-from math import ceil, floor
+from math import floor
 
-import numpy as np
 from Optibess_algorithm.constants import *
 
 
@@ -14,13 +13,16 @@ class PowerStorage(ABC):
     @property
     @abstractmethod
     def num_of_years(self) -> int:
+        """
+        the number of years the system will be used
+        """
         pass
 
     @property
     @abstractmethod
     def degradation_table(self) -> tuple[float, ...]:
         """
-        return a tuple with yearly degradation of the system
+        a tuple with yearly degradation of the system
         """
         pass
 
@@ -28,7 +30,7 @@ class PowerStorage(ABC):
     @abstractmethod
     def dod_table(self) -> tuple[float, ...]:
         """
-        return a tuple with the yearly dod of the system
+        a tuple with the yearly dod of the system
         """
         pass
 
@@ -36,7 +38,7 @@ class PowerStorage(ABC):
     @abstractmethod
     def rte_table(self) -> tuple[float, ...]:
         """
-        return a tuple with the yearly rte of the system
+        a tuple with the yearly rte of the system
         """
         pass
 
@@ -44,7 +46,7 @@ class PowerStorage(ABC):
     @abstractmethod
     def number_of_blocks(self) -> int:
         """
-        return the number of storage blocks in the system
+        the number of storage blocks in the system
         """
         pass
 
@@ -52,7 +54,7 @@ class PowerStorage(ABC):
     @abstractmethod
     def block_size(self) -> float:
         """
-        return the size of each block
+        the size of each block
         """
         pass
 
@@ -60,7 +62,7 @@ class PowerStorage(ABC):
     @abstractmethod
     def idle_self_consumption(self) -> float:
         """
-        return the self consumption percentage for idle state
+        the self consumption percentage for idle state
         """
         pass
 
@@ -68,7 +70,7 @@ class PowerStorage(ABC):
     @abstractmethod
     def active_self_consumption(self) -> float:
         """
-        return the active self consumption percentage for active state
+        the active self consumption percentage for active state
         """
         pass
 
@@ -76,7 +78,7 @@ class PowerStorage(ABC):
     @abstractmethod
     def aug_table(self) -> np.ndarray:
         """
-        return a table with the augmentations of the storage system (month (stating at 0), number of block and storage
+        a table with the augmentations of the storage system (month (stating at 0), number of block and storage
         size for each augmentation). None if augmentations are not used
         """
     pass
@@ -151,6 +153,9 @@ class LithiumPowerStorage(PowerStorage):
 
     @property
     def connection_size(self):
+        """
+        the size of the connection of the storage system to the rest of the power system (kW)
+        """
         return self._connection_size
 
     def _set_connection_size(self, value):
@@ -241,6 +246,9 @@ class LithiumPowerStorage(PowerStorage):
 
     @property
     def battery_hours(self):
+        """
+        the number of hours the system should supply (should supply connection size each hour)
+        """
         return self._battery_hours
 
     @battery_hours.setter

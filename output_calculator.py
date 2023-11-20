@@ -16,6 +16,9 @@ from Optibess_algorithm.utils import year_diff, month_diff
 #  has 2 entry with the hour 2:00 and 1 day that has no hour 2:00)
 
 class Coupling(Enum):
+    """
+    an enumeration of the options for the system layout
+    """
     AC = auto()
     DC = auto()
 
@@ -97,6 +100,9 @@ class OutputCalculator:
     # region Properties
     @property
     def num_of_years(self):
+        """
+        the number of year for which the system will be simulated
+        """
         return self._num_of_years
 
     def _set_num_of_years(self, value: int):
@@ -106,6 +112,9 @@ class OutputCalculator:
 
     @property
     def grid_size(self):
+        """
+        the size of the connection to the grid (kW)
+        """
         return self._grid_size
 
     @grid_size.setter
@@ -123,6 +132,9 @@ class OutputCalculator:
 
     @property
     def producer(self):
+        """
+        the power producer of the system
+        """
         return self._producer
 
     @producer.setter
@@ -133,6 +145,9 @@ class OutputCalculator:
 
     @property
     def power_storage(self):
+        """
+        the power storage of the system
+        """
         return self._power_storage
 
     @power_storage.setter
@@ -152,10 +167,16 @@ class OutputCalculator:
 
     @property
     def rated_power(self):
+        """
+        the rated power of the system
+        """
         return self._producer.rated_power * self._producer_factor
 
     @property
     def coupling(self):
+        """
+        The layout of the system depending on where the storage system is connected
+        """
         return self._coupling
 
     @coupling.setter
@@ -170,6 +191,9 @@ class OutputCalculator:
 
     @property
     def mvpv_loss(self):
+        """
+        the loss due to mvpv component
+        """
         return self._mvpv_loss
 
     @mvpv_loss.setter
@@ -194,6 +218,9 @@ class OutputCalculator:
 
     @property
     def trans_loss(self):
+        """
+        the loss due to transformer component
+        """
         return self._trans_loss
 
     @trans_loss.setter
@@ -218,6 +245,9 @@ class OutputCalculator:
 
     @property
     def mvbat_loss(self):
+        """
+        the loss due to mvbat component
+        """
         return self._mvbat_loss
 
     @mvbat_loss.setter
@@ -242,6 +272,9 @@ class OutputCalculator:
 
     @property
     def pcs_loss(self):
+        """
+        the loss due to pcs component
+        """
         return self._pcs_loss
 
     @pcs_loss.setter
@@ -273,6 +306,9 @@ class OutputCalculator:
 
     @property
     def dc_dc_loss(self):
+        """
+        the loss due to dc-dc component
+        """
         return self._dc_dc_loss
 
     @dc_dc_loss.setter
@@ -297,6 +333,9 @@ class OutputCalculator:
 
     @property
     def prod_trans_loss(self):
+        """
+        the total loss where transmitting power from producer to grid
+        """
         return self._prod_trans_loss
 
     def _set_prod_trans_loss(self, mvpv_loss, trans_loss, pcs_loss):
@@ -307,6 +346,9 @@ class OutputCalculator:
 
     @property
     def charge_loss(self):
+        """
+        the loss where charging storage from producer
+        """
         return self._charge_loss
 
     def _set_charge_loss(self, mvpv_loss, mvbat_loss, pcs_loss, dc_dc_loss):
@@ -324,6 +366,9 @@ class OutputCalculator:
 
     @property
     def grid_bess_loss(self):
+        """
+        the loss when transmitting power from grid to bess (or the other way around)
+        """
         return self._grid_bess_loss
 
     def _set_grid_bess_loss(self, pcs_loss, mvbat_loss, trans_loss, dc_dc_loss):
@@ -341,6 +386,9 @@ class OutputCalculator:
 
     @property
     def pcs_power(self):
+        """
+        the size of the power control system responsible for regulating charge/discharge to the storage system
+        """
         return self._pcs_power
 
     def _set_pcs_power(self):
@@ -352,6 +400,9 @@ class OutputCalculator:
 
     @property
     def aug_table(self):
+        """
+        the table of augmentation for the storage system
+        """
         return self._power_storage.aug_table
 
     @aug_table.setter
@@ -365,6 +416,9 @@ class OutputCalculator:
 
     @property
     def bess_discharge_start_hour(self):
+        """
+        the hour at which the storage system starts to discharge
+        """
         return self._bess_discharge_start_hour
 
     @bess_discharge_start_hour.setter
@@ -375,6 +429,10 @@ class OutputCalculator:
 
     @property
     def fill_battery_from_grid(self):
+        """
+        a boolean indicating if the system fills the storage system by buying power from the grid (if producer power
+        wasn't sufficient)
+        """
         return self._fill_battery_from_grid
 
     @fill_battery_from_grid.setter
@@ -383,18 +441,30 @@ class OutputCalculator:
 
     @property
     def results(self):
+        """
+        a list of pandas dataframe with the hourly results of the simulation (see run method for details)
+        """
         return self._results
 
     @property
     def output(self):
+        """
+        a list of pandas series with the hourly total output of the system
+        """
         return self._output
 
     @property
     def purchased_from_grid(self):
+        """
+        a list of pandas series with the hourly power purchased from the grid
+        """
         return self._purchased_from_grid
 
     @property
     def producer_factor(self):
+        """
+        a number between 0 and 1 which the producer output is multiplied by
+        """
         return self._producer_factor
 
     @producer_factor.setter
@@ -405,6 +475,10 @@ class OutputCalculator:
 
     @property
     def save_all_results(self):
+        """
+        a boolean indicating if all of the results for each year should be saved (and also if optional results should
+        be saved)
+        """
         return self._save_all_results
 
     @save_all_results.setter

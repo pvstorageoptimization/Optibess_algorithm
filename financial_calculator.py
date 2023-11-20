@@ -77,8 +77,8 @@ class FinancialCalculator:
         self._set_opex_per_kwp(opex_per_kwp)
         self._set_battery_capex_per_kwh(battery_capex_per_kwh)
         self._set_battery_opex_per_kwh(battery_opex_per_kwh)
-        self._set_battery_connection_capex_per_wk(battery_connection_capex_per_kw)
-        self._set_battery_connection_opex_per_wk(battery_connection_opex_per_kw)
+        self._set_battery_connection_capex_per_kw(battery_connection_capex_per_kw)
+        self._set_battery_connection_opex_per_kw(battery_connection_opex_per_kw)
         self.fixed_capex = fixed_capex
         self.fixed_opex = fixed_opex
         self.interest_rate = interest_rate
@@ -127,6 +127,9 @@ class FinancialCalculator:
     # region Properties
     @property
     def output_calculator(self) -> OutputCalculator:
+        """
+        an OutputCalculator object used for simulations
+        """
         return self._output_calculator
 
     @output_calculator.setter
@@ -141,10 +144,16 @@ class FinancialCalculator:
 
     @property
     def num_of_years(self):
+        """
+        the number of years for which to simulate and calculate data
+        """
         return self._num_of_years
 
     @property
     def land_size(self):
+        """
+        the size of the land used for the system
+        """
         return self._land_size
 
     @land_size.setter
@@ -158,6 +167,9 @@ class FinancialCalculator:
 
     @property
     def capex_per_land_unit(self):
+        """
+        capital expense for each land unit
+        """
         return self._capex_per_land_unit
 
     def _set_capex_per_land_unit(self, value):
@@ -167,6 +179,9 @@ class FinancialCalculator:
 
     @property
     def opex_per_land_unit(self):
+        """
+        operational expense for each land unit
+        """
         return self._opex_per_land_unit
 
     def _set_opex_per_land_unit(self, value):
@@ -176,14 +191,23 @@ class FinancialCalculator:
 
     @property
     def land_capex(self):
+        """
+        total capital expense for land
+        """
         return self._land_capex
 
     @property
     def land_opex(self):
+        """
+        total operational expense for land
+        """
         return self._land_opex
 
     @property
     def usd_to_ils(self):
+        """
+        conversion rate from us dollars to israeli new shekels
+        """
         return self._usd_to_ils
 
     @usd_to_ils.setter
@@ -205,6 +229,9 @@ class FinancialCalculator:
 
     @property
     def capex_per_kwp(self):
+        """
+        capital expense for each kWp from the rated producer power
+        """
         return self._capex_per_kwp
 
     def _set_capex_per_kwp(self, value):
@@ -214,6 +241,9 @@ class FinancialCalculator:
 
     @property
     def opex_per_kwp(self):
+        """
+        operational expense for each kWp from the rated producer power
+        """
         return self._opex_per_kwp
 
     def _set_opex_per_kwp(self, value):
@@ -223,10 +253,16 @@ class FinancialCalculator:
 
     @property
     def total_producer_capex(self):
+        """
+        total capital expense for the producer
+        """
         return self._total_producer_capex
 
     @property
     def total_producer_opex(self):
+        """
+        total operational expense for the producer
+        """
         return self._total_producer_opex
 
     def _set_battery_size(self, value: tuple[tuple[int, int, float]]):
@@ -266,6 +302,9 @@ class FinancialCalculator:
 
     @property
     def battery_capex_per_kwh(self):
+        """
+        capital expense for each kWh in the bess
+        """
         return self._battery_capex_per_kwh
 
     def _set_battery_capex_per_kwh(self, value):
@@ -275,6 +314,9 @@ class FinancialCalculator:
 
     @property
     def battery_opex_per_kwh(self):
+        """
+        operational expense for each kWh in the bess
+        """
         return self._battery_opex_per_kwh
 
     def _set_battery_opex_per_kwh(self, value):
@@ -284,10 +326,16 @@ class FinancialCalculator:
 
     @property
     def battery_cost(self):
+        """
+        total cost of the bess in each year
+        """
         return self._battery_cost
 
     @property
     def battery_opex(self):
+        """
+        total operational expense of the bess in each year
+        """
         return self._battery_opex
 
     def _set_battery_connection_size(self, value):
@@ -297,33 +345,48 @@ class FinancialCalculator:
         self._reset_variables()
 
     @property
-    def battery_connection_capex_per_wk(self):
+    def battery_connection_capex_per_kw(self):
+        """
+        capital expense for each kW of the bess connection
+        """
         return self._battery_connection_capex_per_kw
 
-    def _set_battery_connection_capex_per_wk(self, value):
+    def _set_battery_connection_capex_per_kw(self, value):
         if value < 0:
             raise ValueError("Capex per kw of battery connection should be non negative")
         self._battery_connection_capex_per_kw = value
 
     @property
-    def battery_connection_opex_per_wk(self):
+    def battery_connection_opex_per_kw(self):
+        """
+        operational expense for each kW of the bess connection
+        """
         return self._battery_connection_opex_per_kw
 
-    def _set_battery_connection_opex_per_wk(self, value):
+    def _set_battery_connection_opex_per_kw(self, value):
         if value < 0:
             raise ValueError("Opex per kw of battery connection should be non negative")
         self._battery_connection_opex_per_kw = value
 
     @property
     def battery_connection_capex(self):
+        """
+        total capital expense for the bess connection
+        """
         return self._battery_connection_capex
 
     @property
     def battery_connection_opex(self):
+        """
+        total operational expense for the bess connection
+        """
         return self._battery_connection_opex
 
     @property
     def fixed_capex(self):
+        """
+        capital expense for miscellaneous not depending on land, producer or bess
+        """
         return self._fixed_capex
 
     @fixed_capex.setter
@@ -335,6 +398,9 @@ class FinancialCalculator:
 
     @property
     def fixed_opex(self):
+        """
+        operational expense for miscellaneous not depending on land, producer or bess
+        """
         return self._fixed_opex
 
     @fixed_opex.setter
@@ -346,6 +412,9 @@ class FinancialCalculator:
 
     @property
     def interest_rate(self):
+        """
+        the market interest rate
+        """
         return self._interest_rate
 
     @interest_rate.setter
@@ -357,6 +426,9 @@ class FinancialCalculator:
 
     @property
     def cpi(self):
+        """
+        the consumer price index
+        """
         return self._cpi
 
     @cpi.setter
@@ -368,6 +440,9 @@ class FinancialCalculator:
 
     @property
     def battery_cost_deg(self):
+        """
+        the annual reduction in bess cost
+        """
         return self._battery_cost_deg
 
     @battery_cost_deg.setter
@@ -379,6 +454,9 @@ class FinancialCalculator:
 
     @property
     def buy_from_grid_factor(self):
+        """
+        a factor by which the tariffs are multiplied to get the price of buying power from the grid at each hour
+        """
         return self._buy_from_grid_factor
 
     @buy_from_grid_factor.setter
@@ -390,10 +468,16 @@ class FinancialCalculator:
 
     @property
     def income_details(self):
+        """
+        a list of annual income for the system
+        """
         return self._income_details
 
     @property
     def tariff_table(self):
+        """
+        a table with power tariffs for each hour of the day in each month
+        """
         return self._tariff_table
 
     def _set_tariff_table(self, value: np.ndarray):
@@ -685,8 +769,7 @@ class FinancialCalculator:
                 self._output_calculator.save_all_results = False
             if self._output_calculator.results is None:
                 self._output_calculator.run()
-            power_output = [self._output_calculator.results[i]["grid_from_pv"] +
-                            self._output_calculator.results[i]["bess_from_grid"] for i in range(self._num_of_years)]
+            power_output = [self._output_calculator.results[i]["grid_from_pv"] for i in range(self._num_of_years)]
 
         # get capex and opex
         costs = self.get_producer_expenses()
