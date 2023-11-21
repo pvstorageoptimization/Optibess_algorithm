@@ -28,7 +28,7 @@ def get_pvlib_output(latitude: float, longitude: float, tilt: float = TILT.defau
                      strings_per_inverter: int = DEFAULT_STRINGS_PER_INVERTER,
                      number_of_inverters: int = DEFAULT_NUMBER_OF_INVERTERS, module: pd.Series = MODULE_DEFAULT.copy(),
                      inverter: pd.Series = INVERTER_DEFAULT.copy(), use_bifacial: bool = DEFAULT_USE_BIFACIAL,
-                     albedo: float = ALBEDO.default) -> pd.Series:
+                     albedo: float = ALBEDO.default, losses: float = DEFAULT_LOSSES) -> pd.Series:
     """
     calculate the output of a pv system using pvlib
     :param latitude: the latitude of the location of the system
@@ -43,6 +43,7 @@ def get_pvlib_output(latitude: float, longitude: float, tilt: float = TILT.defau
     :param inverter: parameters of the inverter (as pandas series)
     :param use_bifacial: flag for bifacial calculation
     :param albedo: the albedo of the ground for bifacial calculation
+    :param losses: the additional losses of the system (cable, transformers, etc.) (in percentage)
     :returns:
         a pandas series with the hourly pv output of the system (with date and hour as index)
     """
@@ -70,7 +71,7 @@ def get_pvlib_output(latitude: float, longitude: float, tilt: float = TILT.defau
     if tech == Tech.FIXED:
         mounts = [pvlib.pvsystem.FixedMount(surface_tilt=tilt, surface_azimuth=azimuth)]
     elif tech == Tech.TRACKER:
-        mounts = [pvlib.pvsystem.SingleAxisTrackerMount(backtrack=False)]
+        mounts = [pvlib.pvsystem.SingleAxisTrackerMount(backtrack=True)]
     else:
         east_mount = pvlib.pvsystem.FixedMount(surface_tilt=tilt, surface_azimuth=90)
         west_mount = pvlib.pvsystem.FixedMount(surface_tilt=tilt, surface_azimuth=270)
@@ -113,7 +114,7 @@ def get_pvlib_output(latitude: float, longitude: float, tilt: float = TILT.defau
         model_chain.run_model(tmy)
 
     # replace nan with 0 (for tracker option, since we get nan for hours without sun)
-    output = model_chain.results.ac.fillna(0)  # convert results from modelchain from W to kW
+    output = model_chain.results.ac.fillna(0) * (1 - losses / 100)  # convert results from modelchain from W to kW
     return output / 1000 * (number_of_inverters if tech != Tech.EAST_WEST else number_of_inverters / 2)
 
 

@@ -123,7 +123,7 @@ class PvProducer(Producer):
             if self._number_of_inverters:
                 if any(param is None for param in [self._latitude, self._longitude, self._tilt, self._azimuth,
                                                    self._tech, self._modules_per_string, self._strings_per_inverter,
-                                                   self._module, self._inverter]):
+                                                   self._module, self._inverter, self._losses]):
                     raise ValueError("Missing values for parameters for pvlib option")
                 if self._use_bifacial and self._albedo is None:
                     raise ValueError("Missing values for parameters for pvlib option")
@@ -151,7 +151,8 @@ class PvProducer(Producer):
                                                                    self._azimuth, self._tech, self._modules_per_string,
                                                                    self._strings_per_inverter,
                                                                    self._number_of_inverters, self._module,
-                                                                   self._inverter, self._use_bifacial, self._albedo))
+                                                                   self._inverter, self._use_bifacial, self._albedo,
+                                                                   self._losses))
             # pvgis option
             else:
                 self._power_output = pd.DataFrame(get_pvgis_hourly(self._latitude, self._longitude, self._tilt,
