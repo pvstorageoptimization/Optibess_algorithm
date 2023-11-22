@@ -1,4 +1,4 @@
-Optibess Algorithm - optimizing PV system cobined with storage
+Optibess Algorithm - optimizing PV system combined with storage
 ==============================================================
 
 **Optibess Algorithm** is a python 3.10+ library for simulating and optimizing a photovoltaic system with power storage. 

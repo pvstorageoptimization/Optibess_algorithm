@@ -170,6 +170,9 @@ You can run an optimization on an example system with:
 .. literalinclude:: optimization_example.py
     :language: python
 
+The outputs of the optimizer run method are the parameters of the optimal result (augmentation table and PV size factor) 
+and the optimal result (the irr of the system with these parameters).
+
 Run an optimization on a custom system with:
 
 .. literalinclude:: optimization_full_example.py
