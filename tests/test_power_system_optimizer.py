@@ -1,11 +1,11 @@
 import unittest
-from unittest.mock import Mock, call, PropertyMock
+from unittest.mock import Mock, call
 import numpy as np
 
-from Optibess_algorithm.financial_calculator import FinancialCalculator
-from Optibess_algorithm.output_calculator import OutputCalculator
-from Optibess_algorithm.power_storage import PowerStorage
-from Optibess_algorithm.power_system_optimizer import NevergradOptimizer
+from Optibess_algorithm.Optibess_algorithm.financial_calculator import FinancialCalculator
+from Optibess_algorithm.Optibess_algorithm.output_calculator import OutputCalculator
+from Optibess_algorithm.Optibess_algorithm.power_storage import PowerStorage
+from Optibess_algorithm.Optibess_algorithm.power_system_optimizer import NevergradOptimizer
 
 
 class MockAugTableProperty:

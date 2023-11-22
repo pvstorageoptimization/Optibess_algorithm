@@ -3,11 +3,11 @@ from unittest.mock import Mock, patch
 from numpy import testing as nptesting
 import pandas as pd
 
-from Optibess_algorithm.financial_calculator import FinancialCalculator
-from Optibess_algorithm.output_calculator import OutputCalculator
-from Optibess_algorithm.power_storage import PowerStorage
-from Optibess_algorithm.producers import Producer
-from Optibess_algorithm.constants import *
+from Optibess_algorithm.Optibess_algorithm.financial_calculator import FinancialCalculator
+from Optibess_algorithm.Optibess_algorithm.output_calculator import OutputCalculator
+from Optibess_algorithm.Optibess_algorithm.power_storage import PowerStorage
+from Optibess_algorithm.Optibess_algorithm.producers import Producer
+from Optibess_algorithm.Optibess_algorithm.constants import *
 
 test_folder = os.path.dirname(os.path.abspath(__file__))
 

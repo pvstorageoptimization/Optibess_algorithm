@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 from numpy import testing as nptesting
-from Optibess_algorithm.power_storage import LithiumPowerStorage
+from Optibess_algorithm.Optibess_algorithm.power_storage import LithiumPowerStorage
 
 
 class PowerStorageTest(unittest.TestCase):

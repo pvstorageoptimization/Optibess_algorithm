@@ -2,7 +2,7 @@ import warnings
 from abc import ABC, abstractmethod
 from math import floor
 
-from Optibess_algorithm.constants import *
+from Optibess_algorithm.Optibess_algorithm.constants import *
 
 
 class PowerStorage(ABC):

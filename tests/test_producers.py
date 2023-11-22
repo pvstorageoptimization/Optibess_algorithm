@@ -5,8 +5,8 @@ from unittest.mock import patch
 import pandas as pd
 import pytz
 
-from Optibess_algorithm.producers import PvProducer
-from Optibess_algorithm.constants import *
+from Optibess_algorithm.Optibess_algorithm.producers import PvProducer
+from Optibess_algorithm.Optibess_algorithm.constants import *
 
 test_folder = os.path.dirname(os.path.abspath(__file__))
 
@@ -24,7 +24,7 @@ class TestProducer(unittest.TestCase):
         self.assertEqual(result.power_output.index[0].hour, 0)
         self.assertEqual(result.power_output['pv_output'][9], 3648.1)
 
-    @patch('Optibess_algorithm.producers.get_pvlib_output')
+    @patch('Optibess_algorithm.Optibess_algorithm.producers.get_pvlib_output')
     def test_creation_with_pvlib(self, pvlib_output_calc):
         # mock call for function to generated data from pvlib
         pvlib_output_calc.return_value = pd.read_csv(os.path.join(test_folder,
@@ -41,7 +41,7 @@ class TestProducer(unittest.TestCase):
         self.assertGreater(result.power_output['pv_output'][10], 0)
         self.assertEqual(round(result.rated_power), 720)
 
-    @patch('Optibess_algorithm.producers.get_pvlib_output')
+    @patch('Optibess_algorithm.Optibess_algorithm.producers.get_pvlib_output')
     def test_creation_with_pvlib_cec_module(self, pvlib_output_calc):
         # mock call for function to generated data from pvlib
         pvlib_output_calc.return_value = pd.read_csv(os.path.join(test_folder,
@@ -55,7 +55,7 @@ class TestProducer(unittest.TestCase):
         # check rated power
         self.assertEqual(result.rated_power, 720)
 
-    @patch('Optibess_algorithm.producers.get_pvgis_hourly')
+    @patch('Optibess_algorithm.Optibess_algorithm.producers.get_pvgis_hourly')
     def test_creation_with_pvgis(self, pvgis_output_calc):
         # mock call for function to generated data from pvgis
         pvgis_output_calc.return_value = pd.read_csv(os.path.join(test_folder,
@@ -121,7 +121,7 @@ class TestProducer(unittest.TestCase):
             PvProducer(pv_output_file=os.path.join(test_folder, "test_non_numeric.csv"), pv_peak_power=10000)
         self.assertTrue(str(e.exception).startswith("could not convert string to float"))
 
-    @patch('Optibess_algorithm.producers.get_pvlib_output')
+    @patch('Optibess_algorithm.Optibess_algorithm.producers.get_pvlib_output')
     def test_creation_pvlib_germany_time_zone(self, pvlib_output_calc):
         # mock call for function to generated data from pvlib
         pvlib_output_calc.return_value = pd.read_csv(os.path.join(test_folder,

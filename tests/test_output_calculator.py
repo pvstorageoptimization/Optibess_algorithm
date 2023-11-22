@@ -4,10 +4,10 @@ from unittest.mock import Mock
 import pandas as pd
 import numpy.testing as nptesting
 
-from Optibess_algorithm.output_calculator import OutputCalculator, Coupling
-from Optibess_algorithm.producers import Producer
-from Optibess_algorithm.power_storage import PowerStorage
-from Optibess_algorithm.constants import *
+from Optibess_algorithm.Optibess_algorithm.output_calculator import OutputCalculator, Coupling
+from Optibess_algorithm.Optibess_algorithm.producers import Producer
+from Optibess_algorithm.Optibess_algorithm.power_storage import PowerStorage
+from Optibess_algorithm.Optibess_algorithm.constants import *
 
 test_folder = os.path.dirname(os.path.abspath(__file__))
 

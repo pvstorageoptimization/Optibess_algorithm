@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pvlib.iotools
 
-from Optibess_algorithm.pv_output_calculator import get_pvlib_output, get_pvgis_hourly, Tech
+from Optibess_algorithm.Optibess_algorithm.pv_output_calculator import get_pvlib_output, get_pvgis_hourly, Tech
 
 test_folder = os.path.dirname(os.path.abspath(__file__))
 
@@ -19,7 +19,7 @@ class TestPvOutputCalculator(unittest.TestCase):
         pvlib.iotools.get_pvgis_tmy.return_value = [pd.read_csv(os.path.join(test_folder,
                                                                              "output_calculator/tmy_example.csv"),
                                                                 parse_dates=True, index_col=0), ]
-        patch("Optibess_algorithm.pv_output_calculator.pvfactors_timeseries",
+        patch("Optibess_algorithm.Optibess_algorithm.pv_output_calculator.pvfactors_timeseries",
               return_value=[pd.read_csv(os.path.join(test_folder,
                                                      "output_calculator/irrad_example.csv"),
                                         parse_dates=True, index_col=0)]).start()

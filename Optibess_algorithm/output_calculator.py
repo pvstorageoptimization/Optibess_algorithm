@@ -7,9 +7,9 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from Optibess_algorithm.producers import Producer, PvProducer
-from Optibess_algorithm.power_storage import PowerStorage, LithiumPowerStorage
-from Optibess_algorithm.utils import year_diff, month_diff
+from Optibess_algorithm.Optibess_algorithm.producers import Producer, PvProducer
+from Optibess_algorithm.Optibess_algorithm.power_storage import PowerStorage, LithiumPowerStorage
+from Optibess_algorithm.Optibess_algorithm.utils import year_diff, month_diff
 
 
 # TODO: find a way to deal with case where discharge hour is 2 (this is problematic since daylight saving cause 1 day to

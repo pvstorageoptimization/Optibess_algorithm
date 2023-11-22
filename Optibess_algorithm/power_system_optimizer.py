@@ -10,11 +10,11 @@ import gradient_free_optimizers as gfo
 import nevergrad as ng
 import pygad as pg
 
-from Optibess_algorithm.constants import MAX_BATTERY_HOURS
-from Optibess_algorithm.financial_calculator import FinancialCalculator
-from Optibess_algorithm.output_calculator import OutputCalculator
-from Optibess_algorithm.power_storage import LithiumPowerStorage
-from Optibess_algorithm.producers import PvProducer
+from Optibess_algorithm.Optibess_algorithm.constants import MAX_BATTERY_HOURS
+from Optibess_algorithm.Optibess_algorithm.financial_calculator import FinancialCalculator
+from Optibess_algorithm.Optibess_algorithm.output_calculator import OutputCalculator
+from Optibess_algorithm.Optibess_algorithm.power_storage import LithiumPowerStorage
+from Optibess_algorithm.Optibess_algorithm.producers import PvProducer
 
 root_folder = os.path.dirname(os.path.abspath(__file__))
 

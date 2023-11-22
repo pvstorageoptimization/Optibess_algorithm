@@ -1,11 +1,10 @@
-import time
 import warnings
 
 import pvlib
 from pvlib.bifacial.pvfactors import pvfactors_timeseries
 import pandas as pd
 from enum import Enum, auto
-from Optibess_algorithm.constants import *
+from Optibess_algorithm.Optibess_algorithm.constants import *
 
 root_folder = os.path.dirname(os.path.abspath(__file__))
 PVGIS_URL = 'https://re.jrc.ec.europa.eu/api/v5_2/'

@@ -1,6 +1,6 @@
 import unittest
 from numpy import testing as nptesting
-from Optibess_algorithm.utils import *
+from Optibess_algorithm.Optibess_algorithm.utils import *
 
 
 class TestUtils(unittest.TestCase):
