@@ -444,7 +444,8 @@ if __name__ == '__main__':
     print(f"Optimization took {time.time() - start_time} seconds")
     # print(f"Used {optimizer._derivatives_calcs} calculations with derivatives")
     # # write results to file
-    # with open('c:/Users/user/Documents/solar optimization project/poc docs/optimization_results1.csv', 'w', newline='') \
+    # with open('c:/Users/user/Documents/solar optimization project/poc docs/optimization_results1.csv', 'w',
+    # newline='') \
     #         as csv_file:
     #     writer = csv.writer(csv_file)
     #     writer.writerow(["parameters", "result"])

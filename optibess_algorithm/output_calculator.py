@@ -859,11 +859,11 @@ class OutputCalculator:
         # reducing self consumption from pv to grid or add to grid to bess in charge and idle hours
         self._idle_hourly_self_cons = self._df["battery_nameplate"] * self._power_storage.idle_self_consumption
         active_hours = (self._df["bess2grid"] > 0) | (self._df["pv2bess"] > 0) | (self._df["grid2bess"] > 0)
-        self._df["grid2bess"] += np.where(((grid_from_pv > self._idle_hourly_self_cons) & (active_hours == False)) |
+        self._df["grid2bess"] += np.where(((grid_from_pv > self._idle_hourly_self_cons) & ~active_hours) |
                                           active_hours,
                                           0,
                                           self._idle_hourly_self_cons)
-        grid_from_pv -= np.where((grid_from_pv > self._idle_hourly_self_cons) & (active_hours == False),
+        grid_from_pv -= np.where((grid_from_pv > self._idle_hourly_self_cons) & ~active_hours,
                                  self._idle_hourly_self_cons,
                                  0)
 

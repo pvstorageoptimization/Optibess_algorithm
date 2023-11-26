@@ -14,3 +14,4 @@ warn_return_any = true
 warn_unused_configs = true
 no_implicit_reexport = true
 allow_redefinition = true
+disable_error_code = ["assignment", "var-annotated"]
