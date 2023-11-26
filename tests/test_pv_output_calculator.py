@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pvlib.iotools
 
-from Optibess_algorithm.Optibess_algorithm.pv_output_calculator import get_pvlib_output, get_pvgis_hourly, Tech
+from optibess_algorithm.pv_output_calculator import get_pvlib_output, get_pvgis_hourly, Tech
 
 test_folder = os.path.dirname(os.path.abspath(__file__))
 
@@ -19,7 +19,7 @@ class TestPvOutputCalculator(unittest.TestCase):
         pvlib.iotools.get_pvgis_tmy.return_value = [pd.read_csv(os.path.join(test_folder,
                                                                              "output_calculator/tmy_example.csv"),
                                                                 parse_dates=True, index_col=0), ]
-        patch("Optibess_algorithm.Optibess_algorithm.pv_output_calculator.pvfactors_timeseries",
+        patch("optibess_algorithm.pv_output_calculator.pvfactors_timeseries",
               return_value=[pd.read_csv(os.path.join(test_folder,
                                                      "output_calculator/irrad_example.csv"),
                                         parse_dates=True, index_col=0)]).start()
@@ -29,10 +29,10 @@ class TestPvOutputCalculator(unittest.TestCase):
                                                                    parse_dates=True, index_col=0), ]
 
         # mocks calls to pvlib library to test functions called
-        pvlib.pvsystem.FixedMount = Mock(side_effect=pvlib.pvsystem.FixedMount)
-        pvlib.pvsystem.SingleAxisTrackerMount = Mock(side_effect=pvlib.pvsystem.SingleAxisTrackerMount)
-        pvlib.pvsystem.Array = Mock(side_effect=pvlib.pvsystem.Array)
-        pvlib.pvsystem.PVSystem = Mock(side_effect=pvlib.pvsystem.PVSystem)
+        self.mock_fixed_mount = patch("pvlib.pvsystem.FixedMount").start()
+        self.mock_single_axis_tracker_mount = patch("pvlib.pvsystem.SingleAxisTrackerMount").start()
+        self.mock_array = patch("pvlib.pvsystem.Array").start()
+        self.mock_pvsystem = patch("pvlib.pvsystem.PVSystem").start()
         self.model_chain = patch('pvlib.modelchain.ModelChain').start()
         self.model_chain.return_value.results.ac = pd.read_csv(os.path.join(test_folder,
                                                                             "output_calculator"
@@ -49,9 +49,9 @@ class TestPvOutputCalculator(unittest.TestCase):
         # check values are in reasonable range
         self.assertTrue(np.all(result.iloc[0] < 25))
         # check function calls
-        pvlib.pvsystem.FixedMount.assert_called_once()
-        pvlib.pvsystem.Array.assert_called_once()
-        pvlib.pvsystem.PVSystem.assert_called_once()
+        self.mock_fixed_mount.assert_called_once()
+        self.mock_array.assert_called_once()
+        self.mock_pvsystem.assert_called_once()
         self.model_chain.assert_called_once()
         self.model_chain.return_value.run_model.assert_called_once()
 
@@ -70,9 +70,9 @@ class TestPvOutputCalculator(unittest.TestCase):
         # check values are in reasonable range
         self.assertTrue(np.all(result.iloc[0] < 25))
         # check function calls
-        pvlib.pvsystem.FixedMount.assert_called_once()
-        pvlib.pvsystem.Array.assert_called_once()
-        pvlib.pvsystem.PVSystem.assert_called_once()
+        self.mock_fixed_mount.assert_called_once()
+        self.mock_array.assert_called_once()
+        self.mock_pvsystem.assert_called_once()
         self.assertEqual(self.model_chain.call_count, 2)
         self.assertEqual(self.model_chain.call_args[1]['aoi_model'], 'no_loss')
         self.assertEqual(self.model_chain.call_args[1]['spectral_model'], 'no_loss')
@@ -86,9 +86,9 @@ class TestPvOutputCalculator(unittest.TestCase):
         # check values are not nan
         self.assertFalse(np.isnan(result).any())
         # check function calls
-        pvlib.pvsystem.SingleAxisTrackerMount.assert_called_once()
-        pvlib.pvsystem.Array.assert_called_once()
-        pvlib.pvsystem.PVSystem.assert_called_once()
+        self.mock_single_axis_tracker_mount.assert_called_once()
+        self.mock_array.assert_called_once()
+        self.mock_pvsystem.assert_called_once()
         self.model_chain.assert_called_once()
         self.model_chain.return_value.run_model.assert_called_once()
 
@@ -100,9 +100,9 @@ class TestPvOutputCalculator(unittest.TestCase):
         # check values are in reasonable range
         self.assertTrue(np.all(result.iloc[0] < 25))
         # check function calls
-        self.assertEqual(pvlib.pvsystem.FixedMount.call_count, 2)
-        self.assertEqual(pvlib.pvsystem.Array.call_count, 2)
-        pvlib.pvsystem.PVSystem.assert_called_once()
+        self.assertEqual(self.mock_fixed_mount.call_count, 2)
+        self.assertEqual(self.mock_array.call_count, 2)
+        self.mock_pvsystem.assert_called_once()
         self.model_chain.assert_called_once()
         self.model_chain.return_value.run_model.assert_called_once()
 
@@ -122,9 +122,9 @@ class TestPvOutputCalculator(unittest.TestCase):
         # check data shape
         self.assertEqual(result.shape[0], 8760, "pvlib output is not in the right shape (Should have 8760 rows)")
         # check function calls
-        pvlib.pvsystem.FixedMount.assert_called_once()
-        pvlib.pvsystem.Array.assert_called_once()
-        pvlib.pvsystem.PVSystem.assert_called_once()
+        self.mock_fixed_mount.assert_called_once()
+        self.mock_array.assert_called_once()
+        self.mock_pvsystem.assert_called_once()
         self.model_chain.assert_called_once()
         self.model_chain.return_value.run_model_from_effective_irradiance.assert_called_once()
 
@@ -144,9 +144,9 @@ class TestPvOutputCalculator(unittest.TestCase):
         # check data shape
         self.assertEqual(result.shape[0], 8760, "pvlib output is not in the right shape (Should have 8760 rows)")
         # check function calls
-        pvlib.pvsystem.FixedMount.assert_called_once()
-        pvlib.pvsystem.Array.assert_called_once()
-        pvlib.pvsystem.PVSystem.assert_called_once()
+        self.mock_fixed_mount.assert_called_once()
+        self.mock_array.assert_called_once()
+        self.mock_pvsystem.assert_called_once()
         self.model_chain.assert_called_once()
         self.model_chain.return_value.run_model_from_effective_irradiance.assert_not_called()
 
@@ -162,9 +162,9 @@ class TestPvOutputCalculator(unittest.TestCase):
         # check data shape
         self.assertEqual(result.shape[0], 8760, "pvlib output is not in the right shape (Should have 8760 rows)")
         # check function calls
-        pvlib.pvsystem.FixedMount.assert_called_once()
-        pvlib.pvsystem.Array.assert_called_once()
-        pvlib.pvsystem.PVSystem.assert_called_once()
+        self.mock_fixed_mount.assert_called_once()
+        self.mock_array.assert_called_once()
+        self.mock_pvsystem.assert_called_once()
         self.model_chain.assert_called_once()
         self.model_chain.return_value.run_model_from_effective_irradiance.assert_not_called()
 

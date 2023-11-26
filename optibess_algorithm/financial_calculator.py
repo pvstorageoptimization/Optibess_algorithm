@@ -1,12 +1,15 @@
+from typing import Any
+
 import numpy_financial as npf
 import pandas as pd
+import numpy as np
 import time
 import matplotlib.pyplot as plt
 
-from Optibess_algorithm.Optibess_algorithm.output_calculator import OutputCalculator
-from Optibess_algorithm.Optibess_algorithm.constants import *
-from Optibess_algorithm.Optibess_algorithm.producers import PvProducer
-from Optibess_algorithm.Optibess_algorithm.power_storage import LithiumPowerStorage
+from .output_calculator import OutputCalculator
+from . import constants
+from .producers import PvProducer
+from .power_storage import LithiumPowerStorage
 
 
 class FinancialCalculator:
@@ -16,29 +19,29 @@ class FinancialCalculator:
 
     def __init__(self,
                  output_calculator: OutputCalculator,
-                 land_size: float = DEFAULT_LAND_SIZE,
-                 capex_per_land_unit: float = DEFAULT_CAPEX_PER_LAND_UNIT,
-                 opex_per_land_unit: float = DEFAULT_OPEX_PER_LAND_UNIT,
-                 capex_per_kwp: float = DEFAULT_CAPEX_PER_KWP,
-                 opex_per_kwp: float = DEFAULT_OPEX_PER_KWP,
-                 battery_capex_per_kwh: float = DEFAULT_BATTERY_CAPEX_PER_KWH,
-                 battery_opex_per_kwh: float = DEFAULT_BATTERY_OPEX_PER_KWH,
-                 battery_connection_capex_per_kw: float = DEFAULT_BATTERY_CONNECTION_CAPEX_PER_KW,
-                 battery_connection_opex_per_kw: float = DEFAULT_BATTERY_CONNECTION_OPEX_PER_KW,
-                 fixed_capex: float = DEFAULT_FIXED_CAPEX,
-                 fixed_opex: float = DEFAULT_FIXED_OPEX,
+                 land_size: float = constants.DEFAULT_LAND_SIZE,
+                 capex_per_land_unit: float = constants.DEFAULT_CAPEX_PER_LAND_UNIT,
+                 opex_per_land_unit: float = constants.DEFAULT_OPEX_PER_LAND_UNIT,
+                 capex_per_kwp: float = constants.DEFAULT_CAPEX_PER_KWP,
+                 opex_per_kwp: float = constants.DEFAULT_OPEX_PER_KWP,
+                 battery_capex_per_kwh: float = constants.DEFAULT_BATTERY_CAPEX_PER_KWH,
+                 battery_opex_per_kwh: float = constants.DEFAULT_BATTERY_OPEX_PER_KWH,
+                 battery_connection_capex_per_kw: float = constants.DEFAULT_BATTERY_CONNECTION_CAPEX_PER_KW,
+                 battery_connection_opex_per_kw: float = constants.DEFAULT_BATTERY_CONNECTION_OPEX_PER_KW,
+                 fixed_capex: float = constants.DEFAULT_FIXED_CAPEX,
+                 fixed_opex: float = constants.DEFAULT_FIXED_OPEX,
                  usd_to_ils: float = 3.73,
-                 interest_rate: float = DEFAULT_INTEREST_RATE / 100,
-                 cpi: float = DEFAULT_CPI / 100,
-                 battery_cost_deg: float = DEFAULT_BATTERY_COST_DEG / 100,
-                 tariff_table: np.ndarray = None,
-                 base_tariff: float = DEFAULT_BASE_TARIFF,
-                 winter_low_factor: float = DEFAULT_WINTER_LOW_FACTOR,
-                 winter_high_factor: float = DEFAULT_WINTER_HIGH_FACTOR,
-                 transition_low_factor: float = DEFAULT_TRANSITION_LOW_FACTOR,
-                 transition_high_factor: float = DEFAULT_TRANSITION_HIGH_FACTOR,
-                 summer_low_factor: float = DEFAULT_SUMMER_LOW_FACTOR,
-                 summer_high_factor: float = DEFAULT_SUMMER_HIGH_FACTOR,
+                 interest_rate: float = constants.DEFAULT_INTEREST_RATE / 100,
+                 cpi: float = constants.DEFAULT_CPI / 100,
+                 battery_cost_deg: float = constants.DEFAULT_BATTERY_COST_DEG / 100,
+                 tariff_table: np.ndarray[Any, np.dtype[np.float64]] | None = None,
+                 base_tariff: float = constants.DEFAULT_BASE_TARIFF,
+                 winter_low_factor: float = constants.DEFAULT_WINTER_LOW_FACTOR,
+                 winter_high_factor: float = constants.DEFAULT_WINTER_HIGH_FACTOR,
+                 transition_low_factor: float = constants.DEFAULT_TRANSITION_LOW_FACTOR,
+                 transition_high_factor: float = constants.DEFAULT_TRANSITION_HIGH_FACTOR,
+                 summer_low_factor: float = constants.DEFAULT_SUMMER_LOW_FACTOR,
+                 summer_high_factor: float = constants.DEFAULT_SUMMER_HIGH_FACTOR,
                  buy_from_grid_factor: float = 1.0):
         """
         initialize the calculator with info on the system
@@ -289,7 +292,7 @@ class FinancialCalculator:
                 self._battery_cost.append(value[current_aug][2] * self._battery_capex_per_kwh * self._usd_to_ils)
                 # add opex for the new blocks, based on the month of the augmentation
                 self._battery_opex[-1] += value[current_aug][2] * ((12 - (value[current_aug][0] % 12)) / 12) * \
-                                          self._battery_opex_per_kwh * self._usd_to_ils
+                    self._battery_opex_per_kwh * self._usd_to_ils
                 current_aug += 1
             else:
                 if self._battery_size:
@@ -479,7 +482,7 @@ class FinancialCalculator:
         """
         return self._tariff_table
 
-    def _set_tariff_table(self, value: np.ndarray):
+    def _set_tariff_table(self, value: np.ndarray[Any, np.dtype[np.float64]]):
         if value is not None:
             if value.shape != (12, 24):
                 raise ValueError("Tariff table should be of shape (12, 24)")
@@ -528,12 +531,12 @@ class FinancialCalculator:
         if self._hourly_tariff is not None and self._hourly_matrix_year == year:
             return self._hourly_tariff
         times = pd.date_range(start=f'{year}-01-01 00:00', end=f'{year}-12-31 23:00', freq='h', tz='Asia/Jerusalem')
-        f = lambda x: self._tariff_table[(x.day_of_week + 1) % 7, x.month - 1, x.hour]
+        def f(x): return self._tariff_table[(x.day_of_week + 1) % 7, x.month - 1, x.hour]
         self._hourly_tariff = f(times)
         self._hourly_matrix_year = year
         return self._hourly_tariff
 
-    def get_power_sales(self, power_output=None, cpi: float = None, purchased_from_grid=None,
+    def get_power_sales(self, power_output=None, cpi: float | None = None, purchased_from_grid=None,
                         no_purchase: bool = False):
         """
         calculate the yearly income according to the given power_output
@@ -573,7 +576,7 @@ class FinancialCalculator:
             cpi_multi *= 1 + cpi
         return sales
 
-    def get_power_purchases_cost(self, purchased_from_grid=None, cpi: float = None):
+    def get_power_purchases_cost(self, purchased_from_grid=None, cpi: float | None = None):
         """
         calculate the cost of purchases from grid
         :param purchased_from_grid: list of hourly amount purchased from grid to fill battery (list of pandas series,
@@ -596,7 +599,7 @@ class FinancialCalculator:
             cpi_multi *= 1 + cpi
         return purchases
 
-    def get_expenses(self, cpi: float = None):
+    def get_expenses(self, cpi: float | None = None):
         """
         calculate yearly expenses (capex+opex)
         :param cpi: the yearly cpi in the market in decimal (if none uses the calculator's cpi)
@@ -618,7 +621,7 @@ class FinancialCalculator:
             yearly_expenses += self._battery_cost[year] * battery_cost_rate
             # calculate opex
             yearly_expenses += self._land_opex + self._total_producer_opex + self._battery_opex[year] + \
-                               self._battery_connection_opex + self._fixed_opex
+                self._battery_connection_opex + self._fixed_opex
 
             # multiple expenses by cpi multiplier
             expenses.append(yearly_expenses * cpi_multi)
@@ -627,7 +630,7 @@ class FinancialCalculator:
             battery_cost_rate *= 1 - self._battery_cost_deg
         return expenses
 
-    def get_producer_expenses(self, cpi: float = None):
+    def get_producer_expenses(self, cpi: float | None = None):
         """
                 calculate yearly expenses of power production (capex+opex)
                 :param cpi: the yearly cpi in the market in decimal (if none uses the calculator's cpi)
@@ -652,7 +655,7 @@ class FinancialCalculator:
             cpi_multi *= 1 + cpi
         return expenses
 
-    def get_bess_expenses(self, cpi: float = None):
+    def get_bess_expenses(self, cpi: float | None = None):
         """
         calculate yearly expenses on bess (capex+opex)
         :param cpi: the yearly cpi in the market in decimal (if none uses the calculator's cpi)
@@ -749,8 +752,8 @@ class FinancialCalculator:
         # calculate the costs of the power purchased from grid
         power_costs = self.get_power_purchases_cost(purchased_from_grid)
 
-        lcoe = sum([(costs[i] + power_costs[i]) / (1 + self._interest_rate) ** i for i in range(self._num_of_years)]) / \
-               sum([power_output[i].sum() / (1 + self._interest_rate) ** i for i in range(self._num_of_years)])
+        lcoe = sum([(costs[i] + power_costs[i]) / (1 + self._interest_rate) ** i for i in range(self._num_of_years)]) /\
+            sum([power_output[i].sum() / (1 + self._interest_rate) ** i for i in range(self._num_of_years)])
         return lcoe
 
     def get_lcoe_no_power_costs(self, power_output=None):
@@ -774,7 +777,7 @@ class FinancialCalculator:
         costs = self.get_producer_expenses()
 
         lcoe = sum([costs[i] / (1 + self._interest_rate) ** i for i in range(self._num_of_years)]) / \
-               sum([power_output[i].sum() / (1 + self._interest_rate) ** i for i in range(self._num_of_years)])
+            sum([power_output[i].sum() / (1 + self._interest_rate) ** i for i in range(self._num_of_years)])
         return lcoe
 
     def get_lcos(self):
@@ -790,8 +793,8 @@ class FinancialCalculator:
         results = self._output_calculator.results
         costs = self.get_bess_expenses()
         lcos = sum([costs[i] / (1 + self._interest_rate) ** i for i in range(self._num_of_years)]) / \
-               sum([results[i]["grid_from_bess"].sum() /
-                    (1 + self._interest_rate) ** i for i in range(self._num_of_years)])
+            sum([results[i]["grid_from_bess"].sum() /
+                (1 + self._interest_rate) ** i for i in range(self._num_of_years)])
         return lcos
 
     def plot_cash_flow(self, power_output=None, purchased_from_grid=None):
@@ -808,9 +811,11 @@ class FinancialCalculator:
 
 
 if __name__ == '__main__':
+    import os
+
     # ((0, 1660), (84, 1001), (120, 949), (168, 377), (216, 232), (252, 119))
-    storage = LithiumPowerStorage(25, 100000, aug_table=((288, 1), ))
-    producer = PvProducer("../../test docs/Sushevo_Project.CSV", pv_peak_power=150000)
+    storage = LithiumPowerStorage(25, 100000, aug_table=((288, 1),))
+    producer = PvProducer("../../../test docs/Sushevo_Project.CSV", pv_peak_power=150000)
 
     # pvgis
     # producer = PvProducer(latitude=30.60187, longitude=34.97361, tech=Tech.EAST_WEST, pv_peak_power=9821)

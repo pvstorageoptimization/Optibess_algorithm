@@ -1,13 +1,14 @@
 import unittest
+import os
 from unittest.mock import Mock, patch
 from numpy import testing as nptesting
 import pandas as pd
+import numpy as np
 
-from Optibess_algorithm.Optibess_algorithm.financial_calculator import FinancialCalculator
-from Optibess_algorithm.Optibess_algorithm.output_calculator import OutputCalculator
-from Optibess_algorithm.Optibess_algorithm.power_storage import PowerStorage
-from Optibess_algorithm.Optibess_algorithm.producers import Producer
-from Optibess_algorithm.Optibess_algorithm.constants import *
+from optibess_algorithm.financial_calculator import FinancialCalculator
+from optibess_algorithm.output_calculator import OutputCalculator
+from optibess_algorithm.power_storage import PowerStorage
+from optibess_algorithm.producers import Producer
 
 test_folder = os.path.dirname(os.path.abspath(__file__))
 
@@ -213,7 +214,8 @@ class TestFinancialCalculator(unittest.TestCase):
                         ]
         finance = FinancialCalculator(output_calculator=self.output, cpi=0.025)
         finance.get_hourly_tariff = Mock(return_value=np.loadtxt(os.path.join(test_folder,
-                                                                              "financial_calculator/hourly_tariff_output.csv")))
+                                                                              "financial_calculator/"
+                                                                              "hourly_tariff_output.csv")))
         return finance, power_output
 
     def test_get_power_sales_no_purchase(self):
@@ -378,7 +380,8 @@ class TestFinancialCalculator(unittest.TestCase):
         # check outputs
         result = finance.get_expenses()
         nptesting.assert_array_almost_equal(result, np.loadtxt(os.path.join(test_folder,
-                                                                            "financial_calculator/expenses_results1.csv")), 2)
+                                                                            "financial_calculator/"
+                                                                            "expenses_results1.csv")), 2)
 
     def test_get_producer_expenses(self):
         # set inputs
@@ -389,7 +392,8 @@ class TestFinancialCalculator(unittest.TestCase):
         # check outputs
         result = finance.get_producer_expenses()
         nptesting.assert_array_almost_equal(result, np.loadtxt(os.path.join(test_folder,
-                                                                            "financial_calculator/expenses_results3.csv")), 2)
+                                                                            "financial_calculator/"
+                                                                            "expenses_results3.csv")), 2)
 
     def test_get_bess_expenses(self):
         # set inputs
@@ -411,7 +415,8 @@ class TestFinancialCalculator(unittest.TestCase):
         # check outputs
         result = finance.get_bess_expenses()
         nptesting.assert_array_almost_equal(result, np.loadtxt(os.path.join(test_folder,
-                                                                            "financial_calculator/expenses_results2.csv")), 2)
+                                                                            "financial_calculator/"
+                                                                            "expenses_results2.csv")), 2)
 
     def test_get_cash_flow(self):
         # set inputs
@@ -460,11 +465,12 @@ class TestFinancialCalculator(unittest.TestCase):
         power_output = [np.array([x / 2, x / 2]) for x in power_output]
         purchased_from_grid = 0
         finance = FinancialCalculator(self.output)
-        finance.get_power_purchases_cost = Mock(return_value=
-                                                np.loadtxt(os.path.join(test_folder,
-                                                                        "financial_calculator/power_purchased_data2.csv")))
+        finance.get_power_purchases_cost = Mock(return_value=np.loadtxt(os.path.join(test_folder,
+                                                                                     "financial_calculator/"
+                                                                                     "power_purchased_data2.csv")))
         finance.get_producer_expenses = Mock(return_value=np.loadtxt(os.path.join(test_folder,
-                                                                                  "financial_calculator/expenses_results1.csv")))
+                                                                                  "financial_calculator/"
+                                                                                  "expenses_results1.csv")))
         # check outputs
         result = finance.get_lcoe(power_output, purchased_from_grid)
         self.assertAlmostEqual(result, 0.053114, 4)
@@ -478,11 +484,12 @@ class TestFinancialCalculator(unittest.TestCase):
         calc_results = [pd.DataFrame({"grid_from_pv": [x / 2, x / 2], "bess_from_grid": [0, 0]}) for x in power_output]
         type(self.output).results = calc_results
         finance = FinancialCalculator(self.output)
-        finance.get_power_purchases_cost = Mock(return_value=
-                                                np.loadtxt(os.path.join(test_folder,
-                                                                        "financial_calculator/power_purchased_data2.csv")))
+        finance.get_power_purchases_cost = Mock(return_value=np.loadtxt(os.path.join(test_folder,
+                                                                                     "financial_calculator/"
+                                                                                     "power_purchased_data2.csv")))
         finance.get_producer_expenses = Mock(return_value=np.loadtxt(os.path.join(test_folder,
-                                                                                  "financial_calculator/expenses_results1.csv")))
+                                                                                  "financial_calculator/"
+                                                                                  "expenses_results1.csv")))
         # check outputs
         result = finance.get_lcoe()
         self.assertAlmostEqual(result, 0.053114, 4)
@@ -506,11 +513,12 @@ class TestFinancialCalculator(unittest.TestCase):
 
         self.output.run = Mock(side_effect=run_mock)
         finance = FinancialCalculator(self.output)
-        finance.get_power_purchases_cost = Mock(return_value=
-                                                np.loadtxt(os.path.join(test_folder,
-                                                                        "financial_calculator/power_purchased_data2.csv")))
+        finance.get_power_purchases_cost = Mock(return_value=np.loadtxt(os.path.join(test_folder,
+                                                                                     "financial_calculator/"
+                                                                                     "power_purchased_data2.csv")))
         finance.get_producer_expenses = Mock(return_value=np.loadtxt(os.path.join(test_folder,
-                                                                                  "financial_calculator/expenses_results1.csv")))
+                                                                                  "financial_calculator/"
+                                                                                  "expenses_results1.csv")))
         # check outputs
         result = finance.get_lcoe()
         self.assertAlmostEqual(result, 0.053114, 4)
@@ -531,11 +539,12 @@ class TestFinancialCalculator(unittest.TestCase):
 
         self.output.run = Mock(side_effect=run_mock)
         finance = FinancialCalculator(self.output)
-        finance.get_power_purchases_cost = Mock(return_value=
-                                                np.loadtxt(os.path.join(test_folder,
-                                                                        "financial_calculator/power_purchased_data2.csv")))
+        finance.get_power_purchases_cost = Mock(return_value=np.loadtxt(os.path.join(test_folder,
+                                                                                     "financial_calculator/"
+                                                                                     "power_purchased_data2.csv")))
         finance.get_producer_expenses = Mock(return_value=np.loadtxt(os.path.join(test_folder,
-                                                                                  "financial_calculator/expenses_results1.csv")))
+                                                                                  "financial_calculator/"
+                                                                                  "expenses_results1.csv")))
         # check outputs
         result = finance.get_lcoe(power_output)
         self.assertAlmostEqual(result, 0.053114, 4)
@@ -559,11 +568,12 @@ class TestFinancialCalculator(unittest.TestCase):
 
         self.output.run = Mock(side_effect=run_mock)
         finance = FinancialCalculator(self.output)
-        finance.get_power_purchases_cost = Mock(return_value=
-                                                np.loadtxt(os.path.join(test_folder,
-                                                                        "financial_calculator/power_purchased_data2.csv")))
+        finance.get_power_purchases_cost = Mock(return_value=np.loadtxt(os.path.join(test_folder,
+                                                                                     "financial_calculator/"
+                                                                                     "power_purchased_data2.csv")))
         finance.get_producer_expenses = Mock(return_value=np.loadtxt(os.path.join(test_folder,
-                                                                                  "financial_calculator/expenses_results1.csv")))
+                                                                                  "financial_calculator/"
+                                                                                  "expenses_results1.csv")))
         # check outputs
         result = finance.get_lcoe()
         self.assertAlmostEqual(result, 0.053114, 4)
@@ -578,7 +588,8 @@ class TestFinancialCalculator(unittest.TestCase):
         power_output = [np.array([x / 2, x / 2]) for x in power_output]
         finance = FinancialCalculator(self.output)
         finance.get_producer_expenses = Mock(return_value=np.loadtxt(os.path.join(test_folder,
-                                                                                  "financial_calculator/expenses_results1.csv")))
+                                                                                  "financial_calculator/"
+                                                                                  "expenses_results1.csv")))
         # check outputs
         result = finance.get_lcoe_no_power_costs(power_output)
         self.assertAlmostEqual(result, 0.049409, 4)
@@ -592,7 +603,8 @@ class TestFinancialCalculator(unittest.TestCase):
         type(self.output).results = calc_results
         finance = FinancialCalculator(self.output)
         finance.get_producer_expenses = Mock(return_value=np.loadtxt(os.path.join(test_folder,
-                                                                                  "financial_calculator/expenses_results1.csv")))
+                                                                                  "financial_calculator/"
+                                                                                  "expenses_results1.csv")))
         # check outputs
         result = finance.get_lcoe_no_power_costs()
         self.assertAlmostEqual(result, 0.049409, 4)
@@ -612,7 +624,8 @@ class TestFinancialCalculator(unittest.TestCase):
         self.output.run = Mock(side_effect=run_mock)
         finance = FinancialCalculator(self.output)
         finance.get_producer_expenses = Mock(return_value=np.loadtxt(os.path.join(test_folder,
-                                                                                  "financial_calculator/expenses_results1.csv")))
+                                                                                  "financial_calculator/"
+                                                                                  "expenses_results1.csv")))
         # check outputs
         result = finance.get_lcoe_no_power_costs()
         self.assertAlmostEqual(result, 0.049409, 4)
@@ -632,7 +645,8 @@ class TestFinancialCalculator(unittest.TestCase):
         self.output.run = Mock(side_effect=run_mock)
         finance = FinancialCalculator(self.output)
         finance.get_producer_expenses = Mock(return_value=np.loadtxt(os.path.join(test_folder,
-                                                                                  "financial_calculator/expenses_results1.csv")))
+                                                                                  "financial_calculator/"
+                                                                                  "expenses_results1.csv")))
         # check outputs
         result = finance.get_lcoe_no_power_costs()
         self.assertAlmostEqual(result, 0.049409, 4)
@@ -647,7 +661,8 @@ class TestFinancialCalculator(unittest.TestCase):
         type(self.output).results = [pd.DataFrame([x], columns=["grid_from_bess"]) for x in output_results]
         finance = FinancialCalculator(self.output)
         finance.get_bess_expenses = Mock(return_value=np.loadtxt(os.path.join(test_folder,
-                                                                              "financial_calculator/expenses_results2.csv")))
+                                                                              "financial_calculator/"
+                                                                              "expenses_results2.csv")))
         # check outputs
         result = finance.get_lcos()
         self.assertAlmostEqual(result, 0.014232998, 4)
@@ -666,11 +681,12 @@ class TestFinancialCalculator(unittest.TestCase):
 
         self.output.run = Mock(side_effect=run_mock)
         finance = FinancialCalculator(self.output)
-        finance.get_power_purchases_cost = Mock(return_value=
-                                                np.loadtxt(os.path.join(test_folder,
-                                                                        "financial_calculator/power_purchased_data2.csv")))
+        finance.get_power_purchases_cost = Mock(return_value=np.loadtxt(os.path.join(test_folder,
+                                                                                     "financial_calculator/"
+                                                                                     "power_purchased_data2.csv")))
         finance.get_bess_expenses = Mock(return_value=np.loadtxt(os.path.join(test_folder,
-                                                                              "financial_calculator/expenses_results2.csv")))
+                                                                              "financial_calculator/"
+                                                                              "expenses_results2.csv")))
         # check outputs
         result = finance.get_lcos()
         self.assertAlmostEqual(result, 0.014232998, 4)
@@ -689,15 +705,15 @@ class TestFinancialCalculator(unittest.TestCase):
 
         self.output.run = Mock(side_effect=run_mock)
         finance = FinancialCalculator(self.output)
-        finance.get_power_purchases_cost = Mock(return_value=
-                                                np.loadtxt(os.path.join(test_folder,
-                                                                        "financial_calculator/power_purchased_data2.csv")))
+        finance.get_power_purchases_cost = Mock(return_value=np.loadtxt(os.path.join(test_folder,
+                                                                                     "financial_calculator/"
+                                                                                     "power_purchased_data2.csv")))
         finance.get_bess_expenses = Mock(return_value=np.loadtxt(os.path.join(test_folder,
-                                                                              "financial_calculator/expenses_results2.csv")))
+                                                                              "financial_calculator/"
+                                                                              "expenses_results2.csv")))
         # check outputs
         result = finance.get_lcos()
         self.assertAlmostEqual(result, 0.014232998, 4)
         self.output.run.assert_called_once()
         self.assertFalse(self.output.save_all_results)
         finance.get_bess_expenses.assert_called_once()
-

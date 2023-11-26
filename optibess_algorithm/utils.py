@@ -1,4 +1,5 @@
 import itertools
+from typing import Union
 
 import numpy as np
 import pandas as pd
@@ -48,8 +49,8 @@ def month_diff(end_date: pd.DatetimeIndex | pd.Timestamp, start_date: pd.Datetim
     return end_date.month - start_date.month + (end_date.year - start_date.year) * 12 - (end_date.day < start_date.day)
 
 
-def _check_cover_no_overlap(cover_range: [list[int], tuple[int]], overlap_error_msg: str, cover_error_msg: str,
-                            *args: [list[int], tuple[int]]):
+def _check_cover_no_overlap(cover_range: Union[list[int], tuple[int, ...]], overlap_error_msg: str,
+                            cover_error_msg: str, *args: Union[list[int], tuple[int, ...]]):
     """
     check the given lists/tuples cover the given cover range and has no overlapping elements
     :param cover_range: the range the args should cover
@@ -65,15 +66,15 @@ def _check_cover_no_overlap(cover_range: [list[int], tuple[int]], overlap_error_
 
 
 def build_tariff_table(
-        winter_months: [list[int], tuple[int]] = (0, 1, 11),
-        transition_months: [list[int], tuple[int]] = (2, 3, 4, 9, 10),
-        summer_months: [list[int], tuple[int]] = (5, 6, 7, 8),
-        winter_low_hours: [list[int], tuple[int]] = tuple(range(1, 17)) + (22, 23, 0),
-        winter_high_hours: [list[int], tuple[int]] = tuple(range(17, 22)),
-        transition_low_hours: [list[int], tuple[int]] = tuple(range(1, 17)) + (22, 23, 0),
-        transition_high_hours: [list[int], tuple[int]] = tuple(range(17, 22)),
-        summer_low_hours: [list[int], tuple[int]] = tuple(range(1, 17)) + (23, 0),
-        summer_high_hours: [list[int], tuple[int]] = tuple(range(17, 23)),
+        winter_months: Union[list[int], tuple[int, ...]] = (0, 1, 11),
+        transition_months: Union[list[int], tuple[int, ...]] = (2, 3, 4, 9, 10),
+        summer_months: Union[list[int], tuple[int, ...]] = (5, 6, 7, 8),
+        winter_low_hours: Union[list[int], tuple[int, ...]] = tuple(range(1, 17)) + (22, 23, 0),
+        winter_high_hours: Union[list[int], tuple[int, ...]] = tuple(range(17, 22)),
+        transition_low_hours: Union[list[int], tuple[int, ...]] = tuple(range(1, 17)) + (22, 23, 0),
+        transition_high_hours: Union[list[int], tuple[int, ...]] = tuple(range(17, 22)),
+        summer_low_hours: Union[list[int], tuple[int, ...]] = tuple(range(1, 17)) + (23, 0),
+        summer_high_hours: Union[list[int], tuple[int, ...]] = tuple(range(17, 23)),
 ):
     """
     create a tariff table containing the tariff in each hour for each month
@@ -109,5 +110,5 @@ def build_tariff_table(
     # summer tariffs
     tariff_table[np.ix_(summer_months, summer_low_hours)] = 5
     tariff_table[np.ix_(summer_months, summer_high_hours)] = 6
-    
+
     return tariff_table.tolist()

@@ -7,9 +7,9 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from Optibess_algorithm.Optibess_algorithm.producers import Producer, PvProducer
-from Optibess_algorithm.Optibess_algorithm.power_storage import PowerStorage, LithiumPowerStorage
-from Optibess_algorithm.Optibess_algorithm.utils import year_diff, month_diff
+from .producers import Producer, PvProducer
+from .power_storage import PowerStorage, LithiumPowerStorage
+from .utils import year_diff, month_diff
 
 
 # TODO: find a way to deal with case where discharge hour is 2 (this is problematic since daylight saving cause 1 day to
@@ -394,7 +394,7 @@ class OutputCalculator:
     def _set_pcs_power(self):
         total_battery_nameplate = sum(self._power_storage.aug_table[:, 2])
         self._pcs_power = self._grid_size / (self._power_storage.rte_table[0] * (1 - self._grid_bess_loss)) + \
-                          2 * total_battery_nameplate * self._power_storage.active_self_consumption
+            2 * total_battery_nameplate * self._power_storage.active_self_consumption
         # if total battery is small compare to grid size limit pcs by it size instead by grid size
         self._pcs_power = min(sum(self._power_storage.aug_table[:, 2]), self._pcs_power)
 
@@ -527,7 +527,7 @@ class OutputCalculator:
         """
         # calculate overflow of power from pv and bess to grid
         temp = self._df["pv_output"] - self._grid_size / (1 - self._prod_trans_loss) - \
-               self._pcs_power / (1 - self._charge_loss)
+            self._pcs_power / (1 - self._charge_loss)
         self._df["overflow"] = np.where(temp > 0, temp, 0)
         # add losses due to overflow
         self._df["acc_losses"] += self._df["overflow"]
@@ -647,7 +647,7 @@ class OutputCalculator:
         # the same value for the whole day, even days with different number of hour like daylight saving change days)
         daily_underflow = pd.Series(daily_underflow, self._daily_index)
         daily_underflow = daily_underflow.reindex(self._df.index, method='bfill', copy=False,
-                                                  fill_value=daily_underflow[0])
+                                                  fill_value=daily_underflow.iloc[0])
 
         # calculate corrected hourly pv to bess (accounting for the underflow in the hours close to the discharge hour)
         # get the index of the hour when starting to discharge
@@ -916,7 +916,7 @@ class OutputCalculator:
         # calc soc for hour before charging start
         last_hour_soc = self._df.loc[self._df.index.hour == 23, "soc"]
         last_hour_soc = last_hour_soc.reindex(self._df.index, method="bfill", copy=False)
-        last_hour_soc[:23] = 0 if year == 0 else last_hour_soc[-1] * bat_deg_ratio
+        last_hour_soc[:23] = 0 if year == 0 else last_hour_soc.iloc[-1] * bat_deg_ratio
         reductions = np.column_stack((np.maximum(self._indices - self._df.index.hour - 1, 0),
                                       self._indices)).ravel()
         temp_sums = np.add.reduceat(np.array(self._df["bess2grid"]), reductions)[::2]
@@ -924,9 +924,8 @@ class OutputCalculator:
         # to grid in the previous day)
         if year != 0:
             temp_sums[0] = 0
-            temp_sums[:first_charge_hour[0]] += self._df["bess2grid"][-1] * bat_deg_ratio + \
-                                                (self._active_hourly_self_cons[-1] if self._df["bess2grid"][-1] > 0
-                                                 else 0)
+            temp_sums[:first_charge_hour.iloc[0]] += self._df["bess2grid"].iloc[-1] * bat_deg_ratio + \
+                (self._active_hourly_self_cons.iloc[-1] if self._df["bess2grid"].iloc[-1] > 0 else 0)
         self._df["soc"] += np.where((self._df.index.hour <= first_charge_hour) &
                                     (self._df["bess2grid"] > 0),
                                     last_hour_soc - temp_sums,
@@ -1018,7 +1017,7 @@ class OutputCalculator:
         averages = np.vstack([list(range(24)), averages])
         return averages
 
-    def plot_stat(self, years: Iterable[int] = None, stat: str = "output"):
+    def plot_stat(self, years: Iterable[int] | None = None, stat: str = "output"):
         """
         plot a graph of the given stat over the years
         :param years: iterable of years to calculate for (refer to years since year one, acceptable values are between
@@ -1050,11 +1049,12 @@ class OutputCalculator:
 if __name__ == '__main__':
     year_num = 25
     connection = 180000
-    storage = LithiumPowerStorage(year_num, connection, #battery_hours=2, use_default_aug=True)
-                                  aug_table=((0, 846), (72, 1093), (140, 179), (200, 200)))
+    storage = LithiumPowerStorage(year_num, connection, aug_table=((0, 846), (72, 1093), (140, 179), (200, 200)))
 
     # file
-    prod = PvProducer("../media/test.csv", pv_peak_power=13000)
+    import os
+    root_folder = os.path.dirname(os.path.abspath(__file__))
+    prod = PvProducer(os.path.join(root_folder, "test.csv"), pv_peak_power=13000)
 
     # pvgis
     # prod = PvProducer(latitude=30.60187, longitude=34.97361, tech=Tech.EAST_WEST, pv_peak_power=9821)

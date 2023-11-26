@@ -1,13 +1,14 @@
 import unittest
 from unittest.mock import Mock
-
 import pandas as pd
+import numpy as np
 import numpy.testing as nptesting
+import os
 
-from Optibess_algorithm.Optibess_algorithm.output_calculator import OutputCalculator, Coupling
-from Optibess_algorithm.Optibess_algorithm.producers import Producer
-from Optibess_algorithm.Optibess_algorithm.power_storage import PowerStorage
-from Optibess_algorithm.Optibess_algorithm.constants import *
+from optibess_algorithm.output_calculator import OutputCalculator, Coupling
+from optibess_algorithm.producers import Producer
+from optibess_algorithm.power_storage import PowerStorage
+import optibess_algorithm.constants as constants
 
 test_folder = os.path.dirname(os.path.abspath(__file__))
 
@@ -25,11 +26,11 @@ class TestOutputCalculator(unittest.TestCase):
         self.power_storage = Mock(spec=PowerStorage)
         type(self.power_storage).num_of_years = 25
         type(self.power_storage).aug_table = np.array([[0, 70, 7000], [96, 20, 2000], [192, 10, 1000]])
-        type(self.power_storage).rte_table = DEFAULT_RTE_TABLE
-        type(self.power_storage).degradation_table = DEFAULT_DEG_TABLE
-        type(self.power_storage).dod_table = DEFAULT_DOD_TABLE
-        type(self.power_storage).active_self_consumption = DEFAULT_ACTIVE_SELF_CONSUMPTION
-        type(self.power_storage).idle_self_consumption = DEFAULT_IDLE_SELF_CONSUMPTION
+        type(self.power_storage).rte_table = constants.DEFAULT_RTE_TABLE
+        type(self.power_storage).degradation_table = constants.DEFAULT_DEG_TABLE
+        type(self.power_storage).dod_table = constants.DEFAULT_DOD_TABLE
+        type(self.power_storage).active_self_consumption = constants.DEFAULT_ACTIVE_SELF_CONSUMPTION
+        type(self.power_storage).idle_self_consumption = constants.DEFAULT_IDLE_SELF_CONSUMPTION
 
         # create default output calculator
         self.output = OutputCalculator(num_of_years=25, grid_size=5000, producer=self.producer,
@@ -63,7 +64,7 @@ class TestOutputCalculator(unittest.TestCase):
         power_storage = Mock(spec=PowerStorage)
         type(power_storage).num_of_years = 25
         type(power_storage).aug_table = np.array([[0, 70, 7000], [96, 20, 2000], [192, 10, 1000]])
-        type(power_storage).rte_table = DEFAULT_RTE_TABLE
+        type(power_storage).rte_table = constants.DEFAULT_RTE_TABLE
         type(power_storage).active_self_consumption = 0.005
         self.output.power_storage = power_storage
         self.assertAlmostEqual(self.output.pcs_power, 5552, 0)
@@ -268,18 +269,18 @@ class TestOutputCalculator(unittest.TestCase):
         self.output._daily_index = pd.date_range(start='2031-1-1 17:00', end='2031-1-31 17:00', freq='d')
         self.output._calc_augmentations()
         # check outputs
-        self.assertEqual(self.output._df["aug_1"][0], 900)
+        self.assertEqual(self.output._df["aug_1"].iloc[0], 900)
         for x in range(17, 30 * 24 + 17, 24):
-            self.assertGreater(self.output._df["aug_1"][x], self.output._df["aug_1"][x + 24])
-        self.assertAlmostEqual(self.output._df["aug_1"][30 * 24 + 17], 894.39, 2)
+            self.assertGreater(self.output._df["aug_1"].iloc[x], self.output._df["aug_1"].iloc[x + 24])
+        self.assertAlmostEqual(self.output._df["aug_1"].iloc[30 * 24 + 17], 894.39, 2)
         nptesting.assert_array_equal(self.output._df["battery_capacity"], self.output._df["aug_0"] +
                                      self.output._df["aug_1"])
 
     def test_pv2bess_battery_overflow_scenario(self):
         # set inputs
         self.additional_setup()
-        self.output._df["pv_output"] = pd.read_csv(os.path.join(test_folder, "output_calculator/pv2bess_data1.csv")) \
-            ["pv_output"].to_numpy()
+        self.output._df["pv_output"] = pd.read_csv(os.path.join(test_folder, "output_calculator/pv2bess_data1.csv"))[
+            "pv_output"].to_numpy()
         # check outputs
         self.output._calc_pv_to_bess()
         nptesting.assert_array_almost_equal(self.output._df.loc[:, ["pv2bess", "battery_overflow"]],
@@ -289,8 +290,8 @@ class TestOutputCalculator(unittest.TestCase):
     def test_pv2bess_battery_underflow_scenario(self):
         # set inputs
         self.additional_setup()
-        self.output._df["pv_output"] = pd.read_csv(os.path.join(test_folder, "output_calculator/pv2bess_data2.csv")) \
-            ["pv_output"].to_numpy()
+        self.output._df["pv_output"] = pd.read_csv(os.path.join(test_folder, "output_calculator/pv2bess_data2.csv"))[
+            "pv_output"].to_numpy()
         # check outputs
         self.output._calc_pv_to_bess()
         nptesting.assert_allclose(self.output._df.loc[:, ["pv2bess", "battery_overflow"]],
@@ -300,8 +301,8 @@ class TestOutputCalculator(unittest.TestCase):
     def test_daily_initial_soc_regular(self):
         # set inputs
         self.additional_setup()
-        self.output._df["pv2bess"] = pd.read_csv(os.path.join(test_folder, "output_calculator/daily_soc_data1.csv")) \
-            ["pv2bess"].to_numpy()
+        self.output._df["pv2bess"] = pd.read_csv(os.path.join(test_folder, "output_calculator/daily_soc_data1.csv"))[
+            "pv2bess"].to_numpy()
         # check outputs
         self.output._calc_daily_initial_battery_soc(0)
         np.testing.assert_array_almost_equal(self.output._initial_battery_soc,
@@ -314,8 +315,8 @@ class TestOutputCalculator(unittest.TestCase):
         self.additional_setup()
         self.output._df = self.output._df.reindex(pd.date_range(start='2024-1-1 00:00', end='2024-1-2 23:00', freq='h'),
                                                   method='nearest')
-        self.output._df["pv2bess"] = pd.read_csv(os.path.join(test_folder, "output_calculator/daily_soc_data2.csv")) \
-            ["pv2bess"].to_numpy()
+        self.output._df["pv2bess"] = pd.read_csv(os.path.join(test_folder, "output_calculator/daily_soc_data2.csv"))[
+            "pv2bess"].to_numpy()
         self.output.bess_discharge_start_hour = 1
         self.output._indices = np.arange(48)
         self.output._daily_index = pd.date_range(start='2024-1-1 1:00', end='2024-1-2 1:00', freq='d')
@@ -331,8 +332,8 @@ class TestOutputCalculator(unittest.TestCase):
         # set inputs
         self.additional_setup()
         self.output._initial_battery_soc = np.full(24, 2700)
-        self.output._df["pv2bess"] = pd.read_csv(os.path.join(test_folder, "output_calculator/grid2bess_data1.csv")) \
-            ["pv2bess"].to_numpy()
+        self.output._df["pv2bess"] = pd.read_csv(os.path.join(test_folder, "output_calculator/grid2bess_data1.csv"))[
+            "pv2bess"].to_numpy()
         # check outputs
         self.output._calc_grid_to_bess(0)
         nptesting.assert_array_equal(self.output._df["grid2bess"], 0)
@@ -342,8 +343,8 @@ class TestOutputCalculator(unittest.TestCase):
         # set inputs
         self.additional_setup()
         self.output._initial_battery_soc = np.full(24, 1331)
-        self.output._df["pv2bess"] = pd.read_csv(os.path.join(test_folder, "output_calculator/grid2bess_data2.csv")) \
-            ["pv2bess"].to_numpy()
+        self.output._df["pv2bess"] = pd.read_csv(os.path.join(test_folder, "output_calculator/grid2bess_data2.csv"))[
+            "pv2bess"].to_numpy()
         # check outputs
         self.output._calc_grid_to_bess(0)
         nptesting.assert_array_almost_equal(self.output._df["grid2bess"],
@@ -360,8 +361,8 @@ class TestOutputCalculator(unittest.TestCase):
         self.output._initial_battery_soc = np.insert(np.full(59, 1331, dtype=float), 0, np.full(13, 0))
         self.output._df = self.output._df.reindex(pd.date_range("2023-1-1 00:00", "2023-1-3 23:00", freq='h'),
                                                   method='nearest')
-        self.output._df["pv2bess"] = pd.read_csv(os.path.join(test_folder, "output_calculator/grid2bess_data3.csv")) \
-            ["pv2bess"].to_numpy()
+        self.output._df["pv2bess"] = pd.read_csv(os.path.join(test_folder, "output_calculator/grid2bess_data3.csv"))[
+            "pv2bess"].to_numpy()
         self.output._active_hourly_self_cons = np.full(72, 12)
         self.output._indices = np.arange(72)
         # check outputs
@@ -459,8 +460,8 @@ class TestOutputCalculator(unittest.TestCase):
         self.output._calc_soc(0, 1)
         nptesting.assert_array_almost_equal(self.output._df["soc"],
                                             pd.read_csv(os.path.join(test_folder,
-                                                                     "output_calculator/soc_data1_results.csv")) \
-                                                ["soc"].to_numpy(), 0)
+                                                                     "output_calculator/soc_data1_results.csv"))[
+                                                "soc"].to_numpy(), 0)
 
     def test_soc_pv_and_grid(self):
         # set inputs
@@ -474,14 +475,14 @@ class TestOutputCalculator(unittest.TestCase):
         self.output._calc_soc(0, 1)
         nptesting.assert_array_almost_equal(self.output._df["soc"],
                                             pd.read_csv(os.path.join(test_folder,
-                                                                     "output_calculator/soc_data2_results.csv")) \
-                                                ["soc"].to_numpy(), 0)
+                                                                     "output_calculator/soc_data2_results.csv"))[
+                                                "soc"].to_numpy(), 0)
 
     def test_soc_late_discharge_hour(self):
         # set inputs
         self.additional_setup()
         self.output._idle_hourly_self_cons = np.full(48, 6)
-        self.output._active_hourly_self_cons = np.full(48, 12)
+        self.output._active_hourly_self_cons = pd.Series(np.full(48, 12))
         self.output._indices = np.arange(48)
         self.output.bess_discharge_start_hour = 22
         self.output._df = self.output._df.reindex(pd.date_range("2025-1-1 00:00", "2025-1-2 23:00", freq='h'),
@@ -494,8 +495,8 @@ class TestOutputCalculator(unittest.TestCase):
         self.output._calc_soc(3, 1)
         nptesting.assert_array_almost_equal(self.output._df["soc"],
                                             pd.read_csv(os.path.join(test_folder,
-                                                                     "output_calculator/soc_data3_results.csv")) \
-                                                ["soc"].to_numpy(), 0)
+                                                                     "output_calculator/soc_data3_results.csv"))[
+                                                "soc"].to_numpy(), 0)
 
     def additional_setup_run(self):
         type(self.power_storage).aug_table = np.array([[0, 30, 3000], [96, 10, 1000]])
@@ -572,7 +573,8 @@ class TestOutputCalculator(unittest.TestCase):
         # check outputs
         result = self.output.monthly_averages(years=(0, 1), stat="test")
         nptesting.assert_array_equal(result, np.loadtxt(os.path.join(test_folder,
-                                                                     "output_calculator/monthly_averages_data1_results.csv"),
+                                                                     "output_calculator/"
+                                                                     "monthly_averages_data1_results.csv"),
                                                         delimiter=","))
 
     def test_monthly_averages_output_values(self):
@@ -587,7 +589,8 @@ class TestOutputCalculator(unittest.TestCase):
         # check outputs
         result = self.output.monthly_averages(years=(0, 1), stat="output")
         nptesting.assert_array_equal(result, np.loadtxt(os.path.join(test_folder,
-                                                                     "output_calculator/monthly_averages_data1_results.csv"),
+                                                                     "output_calculator/"
+                                                                     "monthly_averages_data1_results.csv"),
                                                         delimiter=","))
 
     def test_monthly_averages_wrong_year(self):

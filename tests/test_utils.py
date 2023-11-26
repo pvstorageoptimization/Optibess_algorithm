@@ -1,6 +1,9 @@
 import unittest
 from numpy import testing as nptesting
-from Optibess_algorithm.Optibess_algorithm.utils import *
+import pandas as pd
+import numpy as np
+
+from optibess_algorithm.utils import shift_array, year_diff, month_diff, build_tariff_table
 
 
 class TestUtils(unittest.TestCase):
@@ -8,10 +11,9 @@ class TestUtils(unittest.TestCase):
     def test_shift_array_positive(self):
         result = shift_array([0, 1, 2, 3, 4, 5], 2)
         nptesting.assert_array_equal(result, [np.nan, np.nan, 0, 1, 2, 3])
-        print(result.fill(3))
 
     def test_shift_array_non_numeric_values_no_fill_value(self):
-        with self.assertRaises(ValueError) as e:
+        with self.assertRaises(ValueError):
             shift_array(["a", "b", "c", "d"], 1)
 
     def test_shift_array_non_numeric_values_num_zero(self):

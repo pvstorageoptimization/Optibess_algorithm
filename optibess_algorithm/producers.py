@@ -3,9 +3,8 @@ from abc import ABC, abstractmethod
 import pandas as pd
 from timezonefinder import TimezoneFinder
 
-from Optibess_algorithm.Optibess_algorithm.constants import *
-from Optibess_algorithm.Optibess_algorithm.pv_output_calculator import Tech, MODULE_DEFAULT, INVERTER_DEFAULT, get_pvlib_output, \
-    get_pvgis_hourly
+from . import constants
+from .pv_output_calculator import Tech, MODULE_DEFAULT, INVERTER_DEFAULT, get_pvlib_output, get_pvgis_hourly
 
 
 class Producer(ABC):
@@ -52,21 +51,21 @@ class PvProducer(Producer):
     """
 
     def __init__(self,
-                 pv_output_file: str = None,
-                 time_zone: str = DEFAULT_TIME_ZONE,
-                 latitude: float = None,
-                 longitude: float = None,
-                 modules_per_string: int = DEFAULT_MODULES_PER_STRING,
-                 strings_per_inverter: int = DEFAULT_STRINGS_PER_INVERTER,
-                 number_of_inverters: int = None,
+                 pv_output_file: str | None = None,
+                 time_zone: str = constants.DEFAULT_TIME_ZONE,
+                 latitude: float | None = None,
+                 longitude: float | None = None,
+                 modules_per_string: int = constants.DEFAULT_MODULES_PER_STRING,
+                 strings_per_inverter: int = constants.DEFAULT_STRINGS_PER_INVERTER,
+                 number_of_inverters: int | None = None,
                  module: pd.Series = MODULE_DEFAULT,
                  inverter: pd.Series = INVERTER_DEFAULT,
-                 use_bifacial: bool = DEFAULT_USE_BIFACIAL,
-                 albedo: float = ALBEDO.default,
-                 tilt: float = TILT.default,
-                 azimuth: float = AZIMUTH.default,
-                 losses: float = DEFAULT_LOSSES,
-                 pv_peak_power: float = None,
+                 use_bifacial: bool = constants.DEFAULT_USE_BIFACIAL,
+                 albedo: float = constants.ALBEDO.default,
+                 tilt: float = constants.TILT.default,
+                 azimuth: float = constants.AZIMUTH.default,
+                 losses: float = constants.DEFAULT_LOSSES,
+                 pv_peak_power: float | None = None,
                  tech: Tech = Tech.FIXED,
                  annual_deg: float = 0.0035
                  ):
@@ -192,8 +191,8 @@ class PvProducer(Producer):
         return self._latitude
 
     def _set_latitude(self, value):
-        if value is not None and not LATITUDE.min <= value <= LATITUDE.max:
-            raise ValueError(f"Latitude value should be between {LATITUDE.min} and {LATITUDE.max}")
+        if value is not None and not constants.LATITUDE.min <= value <= constants.LATITUDE.max:
+            raise ValueError(f"Latitude value should be between {constants.LATITUDE.min} and {constants.LATITUDE.max}")
         self._latitude = value
 
     @property
@@ -204,8 +203,9 @@ class PvProducer(Producer):
         return self._longitude
 
     def _set_longitude(self, value):
-        if value is not None and not LONGITUDE.min <= value <= LONGITUDE.max:
-            raise ValueError(f"Longitude value should be between {LONGITUDE.min} and {LONGITUDE.max}")
+        if value is not None and not constants.LONGITUDE.min <= value <= constants.LONGITUDE.max:
+            raise ValueError(f"Longitude value should be between {constants.LONGITUDE.min} and "
+                             f"{constants.LONGITUDE.max}")
         self._longitude = value
 
     @property
@@ -266,8 +266,8 @@ class PvProducer(Producer):
         return self._albedo
 
     def _set_albedo(self, value: float):
-        if value is not None and not ALBEDO.min <= value <= ALBEDO.max:
-            raise ValueError(f"Albedo should be between {ALBEDO.min} and {ALBEDO.max}")
+        if value is not None and not constants.ALBEDO.min <= value <= constants.ALBEDO.max:
+            raise ValueError(f"Albedo should be between {constants.ALBEDO.min} and {constants.ALBEDO.max}")
         self._albedo = value
 
     @property
@@ -278,8 +278,8 @@ class PvProducer(Producer):
         return self._tilt
 
     def _set_tilt(self, value):
-        if value is not None and not TILT.min <= value <= TILT.max:
-            raise ValueError(f"Tilt should be between {TILT.min} and {TILT.max}")
+        if value is not None and not constants.TILT.min <= value <= constants.TILT.max:
+            raise ValueError(f"Tilt should be between {constants.TILT.min} and {constants.TILT.max}")
         self._tilt = value
 
     @property
@@ -290,8 +290,8 @@ class PvProducer(Producer):
         return self._azimuth
 
     def _set_azimuth(self, value):
-        if value is not None and not AZIMUTH.min <= value <= AZIMUTH.max:
-            raise ValueError(f"Azimuth should be between {AZIMUTH.min} and {AZIMUTH.max}")
+        if value is not None and not constants.AZIMUTH.min <= value <= constants.AZIMUTH.max:
+            raise ValueError(f"Azimuth should be between {constants.AZIMUTH.min} and {constants.AZIMUTH.max}")
         self._azimuth = value
 
     @property
@@ -318,7 +318,7 @@ class PvProducer(Producer):
             else:
                 module_peak_power = self._module['Impo'] * self._module['Vmpo']
             self._pv_peak_power = module_peak_power * self._modules_per_string * self._strings_per_inverter * \
-                                  self._number_of_inverters / 1000
+                self._number_of_inverters / 1000
         else:
             if value is None:
                 raise ValueError("PV peak power should have value for options other than pvlib")

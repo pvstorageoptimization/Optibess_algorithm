@@ -1,9 +1,10 @@
 import math
+import numpy as np
 
-from Optibess_algorithm.Optibess_algorithm.output_calculator import OutputCalculator, Coupling
-from Optibess_algorithm.Optibess_algorithm.constants import *
-from Optibess_algorithm.Optibess_algorithm.power_storage import PowerStorage
-from Optibess_algorithm.Optibess_algorithm.producers import Producer
+from optibess_algorithm.output_calculator import OutputCalculator, Coupling
+from optibess_algorithm.constants import *
+from optibess_algorithm.power_storage import PowerStorage
+from optibess_algorithm.producers import Producer
 
 
 def discharge_algo(h, pre_pv2bess, pv_rest, soc, p_sell, p_buy):

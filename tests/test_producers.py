@@ -1,12 +1,13 @@
 import json
 import unittest
 from unittest.mock import patch
+import os
 
 import pandas as pd
 import pytz
 
-from Optibess_algorithm.Optibess_algorithm.producers import PvProducer
-from Optibess_algorithm.Optibess_algorithm.constants import *
+from optibess_algorithm.producers import PvProducer
+import optibess_algorithm.constants as constants
 
 test_folder = os.path.dirname(os.path.abspath(__file__))
 
@@ -22,9 +23,9 @@ class TestProducer(unittest.TestCase):
         self.assertEqual(result.power_output.index[0].day, 1)
         self.assertEqual(result.power_output.index[0].month, 1)
         self.assertEqual(result.power_output.index[0].hour, 0)
-        self.assertEqual(result.power_output['pv_output'][9], 3648.1)
+        self.assertEqual(result.power_output['pv_output'].iloc[9], 3648.1)
 
-    @patch('Optibess_algorithm.Optibess_algorithm.producers.get_pvlib_output')
+    @patch('optibess_algorithm.producers.get_pvlib_output')
     def test_creation_with_pvlib(self, pvlib_output_calc):
         # mock call for function to generated data from pvlib
         pvlib_output_calc.return_value = pd.read_csv(os.path.join(test_folder,
@@ -38,10 +39,10 @@ class TestProducer(unittest.TestCase):
         self.assertEqual(result.power_output.index[2].day, 1)
         self.assertEqual(result.power_output.index[2].month, 1)
         self.assertEqual(result.power_output.index[2].hour, 2)
-        self.assertGreater(result.power_output['pv_output'][10], 0)
+        self.assertGreater(result.power_output['pv_output'].iloc[10], 0)
         self.assertEqual(round(result.rated_power), 720)
 
-    @patch('Optibess_algorithm.Optibess_algorithm.producers.get_pvlib_output')
+    @patch('optibess_algorithm.producers.get_pvlib_output')
     def test_creation_with_pvlib_cec_module(self, pvlib_output_calc):
         # mock call for function to generated data from pvlib
         pvlib_output_calc.return_value = pd.read_csv(os.path.join(test_folder,
@@ -55,7 +56,7 @@ class TestProducer(unittest.TestCase):
         # check rated power
         self.assertEqual(result.rated_power, 720)
 
-    @patch('Optibess_algorithm.Optibess_algorithm.producers.get_pvgis_hourly')
+    @patch('optibess_algorithm.producers.get_pvgis_hourly')
     def test_creation_with_pvgis(self, pvgis_output_calc):
         # mock call for function to generated data from pvgis
         pvgis_output_calc.return_value = pd.read_csv(os.path.join(test_folder,
@@ -69,7 +70,7 @@ class TestProducer(unittest.TestCase):
         self.assertEqual(result.power_output.index[25].day, 2)
         self.assertEqual(result.power_output.index[2].month, 1)
         self.assertEqual(result.power_output.index[2].hour, 2)
-        self.assertGreater(result.power_output['pv_output'][11], 0)
+        self.assertGreater(result.power_output['pv_output'].iloc[11], 0)
 
     def test_creation_no_args(self):
         with self.assertRaises(ValueError) as e:
@@ -102,7 +103,7 @@ class TestProducer(unittest.TestCase):
         self.assertEqual(str(e.exception), "PV peak power should be non negative")
 
     def test_creation_file_incorrect_time_zone(self):
-        with self.assertRaises(pytz.exceptions.UnknownTimeZoneError) as e:
+        with self.assertRaises(pytz.exceptions.UnknownTimeZoneError):
             PvProducer(pv_output_file=os.path.join(test_folder, "test.csv"), pv_peak_power=12000, time_zone="Asia/Jeru")
 
     def test_creation_incorrect_file_extension(self):
@@ -121,7 +122,7 @@ class TestProducer(unittest.TestCase):
             PvProducer(pv_output_file=os.path.join(test_folder, "test_non_numeric.csv"), pv_peak_power=10000)
         self.assertTrue(str(e.exception).startswith("could not convert string to float"))
 
-    @patch('Optibess_algorithm.Optibess_algorithm.producers.get_pvlib_output')
+    @patch('optibess_algorithm.producers.get_pvlib_output')
     def test_creation_pvlib_germany_time_zone(self, pvlib_output_calc):
         # mock call for function to generated data from pvlib
         pvlib_output_calc.return_value = pd.read_csv(os.path.join(test_folder,
@@ -135,14 +136,14 @@ class TestProducer(unittest.TestCase):
     def test_creation_incorrect_latitude(self):
         with self.assertRaises(ValueError) as e:
             PvProducer(latitude=100)
-        self.assertEqual(str(e.exception), f"Latitude value should be between {LATITUDE.min} and "
-                                           f"{LATITUDE.max}")
+        self.assertEqual(str(e.exception), f"Latitude value should be between {constants.LATITUDE.min} and "
+                                           f"{constants.LATITUDE.max}")
 
     def test_creation_incorrect_longitude(self):
         with self.assertRaises(ValueError) as e:
             PvProducer(longitude=200)
-        self.assertEqual(str(e.exception), f"Longitude value should be between {LONGITUDE.min} and "
-                                           f"{LONGITUDE.max}")
+        self.assertEqual(str(e.exception), f"Longitude value should be between {constants.LONGITUDE.min} and "
+                                           f"{constants.LONGITUDE.max}")
 
     def test_creation_incorrect_number_of_modules(self):
         with self.assertRaises(ValueError) as e:
@@ -162,17 +163,19 @@ class TestProducer(unittest.TestCase):
     def test_creation_incorrect_albedo(self):
         with self.assertRaises(ValueError) as e:
             PvProducer(albedo=2)
-        self.assertEqual(str(e.exception), f"Albedo should be between {ALBEDO.min} and {ALBEDO.max}")
+        self.assertEqual(str(e.exception), f"Albedo should be between {constants.ALBEDO.min} and "
+                                           f"{constants.ALBEDO.max}")
 
     def test_creation_incorrect_tilt(self):
         with self.assertRaises(ValueError) as e:
             PvProducer(tilt=-5)
-        self.assertEqual(str(e.exception), f"Tilt should be between {TILT.min} and {TILT.max}")
+        self.assertEqual(str(e.exception), f"Tilt should be between {constants.TILT.min} and {constants.TILT.max}")
 
     def test_creation_incorrect_azimuth(self):
         with self.assertRaises(ValueError) as e:
             PvProducer(azimuth=367)
-        self.assertEqual(str(e.exception), f"Azimuth should be between {AZIMUTH.min} and {AZIMUTH.max}")
+        self.assertEqual(str(e.exception), f"Azimuth should be between {constants.AZIMUTH.min} and "
+                                           f"{constants.AZIMUTH.max}")
 
     def test_creation_incorrect_losses(self):
         with self.assertRaises(ValueError) as e:

@@ -192,9 +192,3 @@ Additional parameters for Nevergrad optimizer:
 - :code:`min_change_size` is the minimum change between steps to consider as a change for early stopping
 - :code:`verbosity` is print information from the optimization algorithm (0: None, 1: fitness values, 2: fitness
   values and recommendation)
-
-.. note::
-
-    There are also are 3 other optimizers using the *Gradient-Free-Optimizers*, *Mystic* and *pygad* packages. These 
-    optimizer were not fully tested, and were found to have worse performance in experiments compare to the optimizer 
-    using *Nevergrad*

@@ -1,8 +1,11 @@
 import warnings
 from abc import ABC, abstractmethod
 from math import floor
+from typing import Any
 
-from Optibess_algorithm.Optibess_algorithm.constants import *
+import numpy as np
+
+from . import constants
 
 
 class PowerStorage(ABC):
@@ -76,12 +79,12 @@ class PowerStorage(ABC):
 
     @property
     @abstractmethod
-    def aug_table(self) -> np.ndarray:
+    def aug_table(self) -> np.ndarray[Any, np.dtype[np.float64]]:
         """
         a table with the augmentations of the storage system (month (stating at 0), number of block and storage
         size for each augmentation). None if augmentations are not used
         """
-    pass
+        pass
 
     @aug_table.setter
     def aug_table(self, value: tuple[tuple[int, int], ...]):
@@ -97,17 +100,17 @@ class LithiumPowerStorage(PowerStorage):
     def __init__(self,
                  num_of_years: int,
                  connection_size: int,
-                 degradation_table: tuple[float, ...] = DEFAULT_DEG_TABLE,
-                 dod_table: tuple[float, ...] = DEFAULT_DOD_TABLE,
-                 rte_table: tuple[float, ...] = DEFAULT_RTE_TABLE,
-                 block_size: float = DEFAULT_BLOCK_SIZE,
+                 degradation_table: tuple[float, ...] = constants.DEFAULT_DEG_TABLE,
+                 dod_table: tuple[float, ...] = constants.DEFAULT_DOD_TABLE,
+                 rte_table: tuple[float, ...] = constants.DEFAULT_RTE_TABLE,
+                 block_size: float = constants.DEFAULT_BLOCK_SIZE,
                  pcs_loss: float = 0.015,
                  mvbat_loss: float = 0.01,
                  trans_loss: float = 0.01,
                  battery_hours: float = 5,
-                 idle_self_consumption: float = DEFAULT_IDLE_SELF_CONSUMPTION,
-                 active_self_consumption: float = DEFAULT_ACTIVE_SELF_CONSUMPTION,
-                 aug_table: tuple[tuple[int, int], ...] = None,
+                 idle_self_consumption: float = constants.DEFAULT_IDLE_SELF_CONSUMPTION,
+                 active_self_consumption: float = constants.DEFAULT_ACTIVE_SELF_CONSUMPTION,
+                 aug_table: tuple[tuple[int, int], ...] | None = None,
                  use_default_aug: bool = False
                  ):
         """
@@ -258,8 +261,8 @@ class LithiumPowerStorage(PowerStorage):
         augmentation table
         :param new_value: the new value for the hours supplied by the battery
         """
-        if not 0 <= new_value <= MAX_BATTERY_HOURS:
-            raise ValueError(f"Battery hours should be between 0 and {MAX_BATTERY_HOURS}")
+        if not 0 <= new_value <= constants.MAX_BATTERY_HOURS:
+            raise ValueError(f"Battery hours should be between 0 and {constants.MAX_BATTERY_HOURS}")
         self._battery_hours = new_value
         prelim_battery_bol = new_value * self._connection_size / (self._rte_table[0] * (1 - self._connection_loss) *
                                                                   self._dod_table[0] * self._degradation_table[0])
@@ -307,7 +310,7 @@ class LithiumPowerStorage(PowerStorage):
 
         # check total battery size is not too big
         if not self.check_battery_size(value):
-            warnings.warn(f"Storage size is bigger than {MAX_BATTERY_HOURS} battery hours. "
+            warnings.warn(f"Storage size is bigger than {constants.MAX_BATTERY_HOURS} battery hours. "
                           f"This can cause charge and discharge to overlap and provide inaccurate results!",
                           UserWarning)
 
@@ -321,9 +324,9 @@ class LithiumPowerStorage(PowerStorage):
             for j in range(i + 1):
                 diff = (value[i][0] - value[j][0]) // 12
                 battery_size += value[j][1] * self._block_size * self._degradation_table[diff] * \
-                                self._dod_table[diff] * self._rte_table[diff] * (1 - self._connection_loss) * \
-                                (1 - self._active_self_consumption * 1.1 * (MAX_BATTERY_HOURS + 1))
-            if battery_size > self._connection_size * MAX_BATTERY_HOURS:
+                    self._dod_table[diff] * self._rte_table[diff] * (1 - self._connection_loss) * \
+                    (1 - self._active_self_consumption * 1.1 * (constants.MAX_BATTERY_HOURS + 1))
+            if battery_size > self._connection_size * constants.MAX_BATTERY_HOURS:
                 return False
         return True
     # endregion

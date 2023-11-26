@@ -1,19 +1,20 @@
 import warnings
+import os
 
 import pvlib
 from pvlib.bifacial.pvfactors import pvfactors_timeseries
 import pandas as pd
 from enum import Enum, auto
-from Optibess_algorithm.Optibess_algorithm.constants import *
+from . import constants
 
 root_folder = os.path.dirname(os.path.abspath(__file__))
 PVGIS_URL = 'https://re.jrc.ec.europa.eu/api/v5_2/'
 MODULE_DEFAULT = pvlib.pvsystem._parse_raw_sam_df(os.path.join(root_folder,
-                                                               "sam-library-sandia-modules-2015-6-30.csv")) \
-    ['Huasun_720']
+                                                               "sam-library-sandia-modules-2015-6-30.csv"))[
+    'Huasun_720']
 INVERTER_DEFAULT = pvlib.pvsystem._parse_raw_sam_df(os.path.join(root_folder,
-                                                                 "sam-library-cec-inverters-2019-03-05.csv")) \
-    ['Huawei_Technologies_Co___Ltd___SUN2000_330KTL_USH0__800V_']
+                                                                 "sam-library-cec-inverters-2019-03-05.csv"))[
+    'Huawei_Technologies_Co___Ltd___SUN2000_330KTL_USH0__800V_']
 
 
 class Tech(Enum):
@@ -22,12 +23,14 @@ class Tech(Enum):
     EAST_WEST = auto()
 
 
-def get_pvlib_output(latitude: float, longitude: float, tilt: float = TILT.default, azimuth: float = AZIMUTH.default,
-                     tech: Tech = Tech.FIXED, modules_per_string: int = DEFAULT_MODULES_PER_STRING,
-                     strings_per_inverter: int = DEFAULT_STRINGS_PER_INVERTER,
-                     number_of_inverters: int = DEFAULT_NUMBER_OF_INVERTERS, module: pd.Series = MODULE_DEFAULT.copy(),
-                     inverter: pd.Series = INVERTER_DEFAULT.copy(), use_bifacial: bool = DEFAULT_USE_BIFACIAL,
-                     albedo: float = ALBEDO.default, losses: float = DEFAULT_LOSSES) -> pd.Series:
+def get_pvlib_output(latitude: float, longitude: float, tilt: float = constants.TILT.default,
+                     azimuth: float = constants.AZIMUTH.default, tech: Tech = Tech.FIXED,
+                     modules_per_string: int = constants.DEFAULT_MODULES_PER_STRING,
+                     strings_per_inverter: int = constants.DEFAULT_STRINGS_PER_INVERTER,
+                     number_of_inverters: int = constants.DEFAULT_NUMBER_OF_INVERTERS,
+                     module: pd.Series = MODULE_DEFAULT.copy(), inverter: pd.Series = INVERTER_DEFAULT.copy(),
+                     use_bifacial: bool = constants.DEFAULT_USE_BIFACIAL, albedo: float = constants.ALBEDO.default,
+                     losses: float = constants.DEFAULT_LOSSES) -> pd.Series:
     """
     calculate the output of a pv system using pvlib
     :param latitude: the latitude of the location of the system
@@ -117,8 +120,9 @@ def get_pvlib_output(latitude: float, longitude: float, tilt: float = TILT.defau
     return output / 1000 * (number_of_inverters if tech != Tech.EAST_WEST else number_of_inverters / 2)
 
 
-def get_pvgis_hourly(latitude: float, longitude: float, tilt: float = TILT.default, azimuth: float = AZIMUTH.default,
-                     pv_peak: float = DEFAULT_PV_PEAK_POWER, tech: Tech = Tech.FIXED, losses=DEFAULT_LOSSES):
+def get_pvgis_hourly(latitude: float, longitude: float, tilt: float = constants.TILT.default,
+                     azimuth: float = constants.AZIMUTH.default, pv_peak: float = constants.DEFAULT_PV_PEAK_POWER,
+                     tech: Tech = Tech.FIXED, losses=constants.DEFAULT_LOSSES):
     """
     get hourly data from pvgis
     :param latitude: latitude of the location

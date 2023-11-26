@@ -3,26 +3,21 @@ import os
 import time
 from abc import ABC, abstractmethod
 import numpy as np
-from mystic.symbolic import generate_constraint, generate_solvers, simplify
-from mystic.constraints import and_, or_
-from mystic.solvers import diffev2
-import gradient_free_optimizers as gfo
 import nevergrad as ng
-import pygad as pg
 
-from Optibess_algorithm.Optibess_algorithm.constants import MAX_BATTERY_HOURS
-from Optibess_algorithm.Optibess_algorithm.financial_calculator import FinancialCalculator
-from Optibess_algorithm.Optibess_algorithm.output_calculator import OutputCalculator
-from Optibess_algorithm.Optibess_algorithm.power_storage import LithiumPowerStorage
-from Optibess_algorithm.Optibess_algorithm.producers import PvProducer
+from .constants import MAX_BATTERY_HOURS
+from .financial_calculator import FinancialCalculator
+from .output_calculator import OutputCalculator
+from .power_storage import LithiumPowerStorage
+from .producers import PvProducer
 
 root_folder = os.path.dirname(os.path.abspath(__file__))
 
 
 class PowerSystemOptimizer(ABC):
 
-    def __init__(self, financial_calculator: FinancialCalculator = None, use_memory: bool = True, max_aug_num: int = 6,
-                 initial_aug_num: int = None, budget: int = 2000):
+    def __init__(self, financial_calculator: FinancialCalculator | None = None, use_memory: bool = True,
+                 max_aug_num: int = 6, initial_aug_num: int | None = None, budget: int = 2000):
         """
         initialize the simulation objects for the optimizer
         :param financial_calculator: calculator to use for objective function
@@ -170,229 +165,11 @@ class PowerSystemOptimizer(ABC):
         return self._optimize(progress_recorder)
 
 
-class GFOOptimizer(PowerSystemOptimizer):
-    def get_aug_table(self, arr: dict) -> tuple[tuple[int, int], ...]:
-        aug_table = []
-        num_of_aug = len(arr) // 2
-        # if the augmentation date is smaller than the previous don't use it or the augmentations after it
-        for i in range(1, num_of_aug + 1):
-            if i == 1 or arr[f"x{i - 1}"] < arr[f"x{i}"]:
-                # ignore augmentations with 0 blocks
-                if arr[f"x{i + num_of_aug}"] > 0:
-                    aug_table.append((arr[f"x{i}"], arr[f"x{i + num_of_aug}"]))
-            else:
-                break
-        logging.info(aug_table)
-        return tuple(aug_table)
-
-    def get_candid(self, arr):
-        aug_table = self.get_aug_table(arr)
-        candid = (aug_table, arr["x13"])
-        return candid
-
-    def _set_variables(self):
-        # set months to be at most at the month bound. set the first augmentation to be at most 2 times the initial
-        # value, and the other augmentations half the initial first value
-        self._search_space = {
-            "x1": np.arange(0, self._month_bound, 12),
-            "x2": np.arange(0, self._month_bound, 12),
-            "x3": np.arange(0, self._month_bound, 12),
-            "x4": np.arange(0, self._month_bound, 12),
-            "x5": np.arange(0, self._month_bound, 12),
-            "x6": np.arange(0, self._month_bound, 12),
-            "x7": np.arange(1, self._first_entry_bound * 2, 1),
-            "x8": np.arange(0, self._first_entry_bound // 2, 1),
-            "x9": np.arange(0, self._first_entry_bound // 2, 1),
-            "x10": np.arange(0, self._first_entry_bound // 2, 1),
-            "x11": np.arange(0, self._first_entry_bound // 2, 1),
-            "x12": np.arange(0, self._first_entry_bound // 2, 1),
-            "x13": np.arange(1, 100, 1),
-        }
-
-    def _set_constraints(self):
-        def constraints_gen(para):
-            """
-            check the difference between months is valid
-            """
-            return all([para[f"x{i + 1}"] - para[f"x{i}"] >= self._month_diff for i in
-                        range(1, 6)])
-
-        self._constraints_list = [constraints_gen]
-
-    def _optimize(self, progress_recorder=None):
-        opt = gfo.DownhillSimplexOptimizer(self._search_space, constraints=self._constraints_list)
-        opt.search(self.maximize_objective, n_iter=self._budget)
-        return opt.search_data
-
-
-class MysticOptimizer(PowerSystemOptimizer):
-
-    def get_aug_table(self, arr) -> tuple[tuple[int, int], ...]:
-        aug_table = []
-        num_of_aug = len(arr) // 2
-        # if the augmentation date is smaller than the previous don't use it or the augmentations after it
-        for i in range(num_of_aug):
-            # ignore augmentations with 0 blocks
-            if i == 0 or arr[i - 1] < arr[i]:
-                aug_table.append((arr[i], arr[i + num_of_aug]))
-            else:
-                break
-        logging.info(aug_table)
-        return tuple(aug_table)
-
-    def _set_variables(self):
-        # set months to be at most at the month bound. set the first augmentation to be at most 2 times the initial
-        # value, and the other augmentations half the initial first value
-        self._bounds = [(0, self._month_bound) for _ in range(6)] + [(1, self._first_entry_bound * 5)] + \
-                       [(1, self._first_entry_bound) for _ in range(5)]
-        # use the default augmentation table (with 5 battery hours) as initial guess
-        temp_aug_table = self._output.aug_table.copy()
-        self._x0 = [temp_aug_table[0, 0], temp_aug_table[1, 0], temp_aug_table[2, 0], 0, 0, 0,
-                    temp_aug_table[1, 0], temp_aug_table[1, 1], temp_aug_table[2, 1], 1, 1, 1]
-
-    def _set_constraints(self):
-        # check the difference between months is valid
-        temp = [or_(generate_constraint(generate_solvers(simplify(f"x{i + 1}-x{i}<={self._month_bound}"))),
-                    generate_constraint(generate_solvers(simplify(f"x{i + 1}==0"))))
-                for i in range(1, 6)]
-        cf = and_(*temp)
-        self._constraints = and_(np.round, cf)
-
-    def _optimize(self, progress_recorder=None):
-        result = diffev2(self.minimize_objective, x0=self._x0, bounds=self._bounds, constraints=self._constraints,
-                         npop=10, gtol=50, full_output=True)
-        logging.info(result)
-
-
-class PyGadOptimizer(PowerSystemOptimizer):
-
-    def __init__(self, financial_calculator: FinancialCalculator = None, use_memory: bool = True):
-        super().__init__(financial_calculator, use_memory)
-        self._best_solution = None
-        self._best_score = None
-
-    def get_aug_table(self, arr) -> tuple[tuple[int, int], ...]:
-        aug_table = []
-        num_of_aug = len(arr) // 2
-        # if the augmentation date is smaller than the previous don't use it or the augmentations after it
-        for i in range(num_of_aug):
-            if i == 0 or arr[i - 1] < arr[i]:
-                # ignore augmentations with 0 blocks
-                if arr[i + num_of_aug] > 0:
-                    aug_table.append((arr[i], arr[i + num_of_aug]))
-            else:
-                break
-        logging.info(aug_table)
-        return tuple(aug_table)
-
-    def fitness_func(self, ga_instance, sol, sol_idx):
-        return self.maximize_objective(sol)
-
-    def _set_variables(self):
-        # set months to be at most at the month bound. set the first augmentation to be at most 2 times the initial
-        # value, and the other augmentations half the initial first value
-        self._gene_space = [range(0, int(self._month_bound), 12) for _ in range(6)] + \
-                           [range(0, int(self._first_entry_bound * 2))] + \
-                           [range(0, int(self._first_entry_bound // 2)) for _ in range(5)]
-        # create a starting population by tweaking the value of the default augmentation table (with 5 battery hours)
-        temp = round(self._first_entry_bound * 0.2)
-        self._init_population = [
-            [0, 96, 192, 0, 0, 0, self._first_entry_bound, temp, temp, 1, 1, 1],
-            [0, 60, 120, 180, 240, 0, self._first_entry_bound, temp, temp, temp, temp, 1],
-            [0, 96, 192, 0, 0, 0, self._first_entry_bound, temp // 2, temp // 2, 1, 1, 1],
-            [0, 84, 168, 252, 0, 0, self._first_entry_bound, temp, temp, temp, 1, 1],
-            [0, 108, 216, 0, 0, 0, self._first_entry_bound, temp, temp, 1, 1, 1],
-            [0, 60, 120, 180, 240, 0, self._first_entry_bound, temp // 2, temp // 2, temp // 2, temp // 2, 1],
-            [0, 48, 84, 120, 192, 252, self._first_entry_bound, temp, temp, temp, temp, temp],
-            [0, 48, 84, 120, 192, 252, self._first_entry_bound, temp, temp, temp // 2, temp // 2, temp // 2],
-            [0, 108, 216, 0, 0, 0, self._first_entry_bound, temp, temp // 2, 1, 1, 1],
-            [0, 84, 168, 252, 0, 0, self._first_entry_bound, temp, temp, temp // 2, 1, 1],
-            [0, 108, 216, 0, 0, 0, self._first_entry_bound, temp, temp, 1, 1, 1],
-            [0, 72, 144, 192, 240, 0, self._first_entry_bound, temp, temp, temp // 2, temp // 2, 1],
-            [0, 48, 108, 0, 0, 0, self._first_entry_bound, temp // 2, temp // 2, 1, 1, 1],
-            [0, 84, 144, 216, 0, 0, self._first_entry_bound, temp, temp // 2, temp, 1, 1],
-            [0, 48, 96, 156, 216, 252, self._first_entry_bound, temp, temp, temp, temp // 2, temp],
-            [0, 36, 84, 180, 240, 0, self._first_entry_bound, temp // 2, temp // 2, temp, temp // 2, 1],
-            [0, 60, 84, 120, 192, 240, self._first_entry_bound, temp, temp, temp, temp, temp // 2],
-            [0, 48, 96, 144, 192, 252, self._first_entry_bound, temp, temp, temp // 2, temp // 2, temp // 2],
-            [0, 108, 252, 0, 0, 0, self._first_entry_bound, temp, temp // 2, 1, 1, 1],
-            [0, 84, 168, 216, 0, 0, self._first_entry_bound, temp, temp, temp // 2, 1, 1]
-        ]
-
-    def _set_constraints(self):
-        pass
-
-    def _optimize(self, progress_recorder=None):
-        num_mating = 5
-
-        def on_fitness(ga_inst, pop_fitness):
-            # change number of mating parent after 1/3 of the optimization to the chosen number (instead of all the
-            # population)
-            if ga_inst.generations_completed < ga_inst.num_generations // 3:
-                ga_inst.num_parents_mating = ga_inst.pop_size[0]
-            else:
-                ga_inst.num_parents_mating = num_mating
-
-        def parent_selection_func(fitness, num_parents, ga_inst):
-            # change strategy after 1/3 of the optimization
-            if ga_inst.generations_completed < ga_inst.num_generations // 3:
-                # half chosen randomly, half using steady state
-                parents1, indices1 = ga_inst.random_selection(fitness, num_parents // 2)
-                parents2, indices2 = ga_inst.steady_state_selection(fitness, num_parents - num_parents // 2)
-                parents = np.concatenate((parents1, parents2))
-                indices = np.concatenate((indices1, indices2))
-                return parents, indices
-            else:
-                return ga_inst.steady_state_selection(fitness, num_parents)
-
-        def crossover_func(parents, offspring_size, ga_inst):
-            # change strategy after 1/3 of the optimization
-            if ga_inst.generations_completed < ga_inst.num_generations // 3:
-                if ga_inst.gene_type_single:
-                    offspring = np.empty(offspring_size, dtype=ga_inst.gene_type[0])
-                else:
-                    offspring = np.empty(offspring_size, dtype=object)
-                for i in range(offspring_size[0]):
-                    # pick random parents for each offspring
-                    last_gen_parents, _ = ga_inst.random_selection(ga_inst.last_generation_fitness, 2)
-                    offspring[i, :] = ga_inst.single_point_crossover(last_gen_parents, (1, offspring_size[1]))[0, :]
-                return offspring
-            else:
-                return ga_inst.single_point_crossover(parents, offspring_size)
-
-        def on_generation(ga_inst):
-            # save the best solution
-            best_match_idx = np.where(ga_inst.last_generation_fitness == np.max(ga_inst.last_generation_fitness))[0][0]
-            if self._best_score is None or ga_inst.last_generation_fitness[best_match_idx] > self._best_score:
-                self._best_score = ga_inst.last_generation_fitness[best_match_idx]
-                self._best_solution = ga_inst.population[best_match_idx, :].copy()
-            logging.info(f"generation: {ga_inst.generations_completed}")
-
-        ga_instance = pg.GA(
-            num_generations=300,
-            num_parents_mating=num_mating,
-            fitness_func=self.fitness_func,
-            initial_population=self._init_population,
-            # parent_selection_type=parent_selection_func,
-            crossover_type=crossover_func,
-            keep_elitism=5,
-            gene_space=self._gene_space,
-            gene_type=int,
-            allow_duplicate_genes=False,
-            on_generation=on_generation,
-            # on_fitness=on_fitness,
-            # stop_criteria="saturate_10"
-        )
-        ga_instance.run()
-        # logging.info(ga_instance.best_solution(), f"number of generations: {ga_instance.generations_completed}")
-        return self._best_solution, self._best_score
-
-
 class NevergradOptimizer(PowerSystemOptimizer):
 
-    def __init__(self, financial_calculator: FinancialCalculator = None, use_memory: bool = True, max_aug_num: int = 6,
-                 initial_aug_num: int = None, budget: int = 2000, max_no_change_steps: int = None,
-                 min_change_size: float = 0.0001, verbosity: int = 2):
+    def __init__(self, financial_calculator: FinancialCalculator | None = None, use_memory: bool = True,
+                 max_aug_num: int = 6, initial_aug_num: int | None = None, budget: int = 2000,
+                 max_no_change_steps: int | None = None, min_change_size: float = 0.0001, verbosity: int = 2):
         """
         initialize the simulation objects for the optimizer
         :param financial_calculator: calculator to use for objective function
@@ -471,8 +248,8 @@ class NevergradOptimizer(PowerSystemOptimizer):
                                                                     inopts={"integer_variables": range(13)}),
                                       ng.optimizers.ParametrizedCMA(scale=0.4847, popsize_factor=1, elitist=True,
                                                                     inopts={"integer_variables": range(13)}),
-                                      ng.optimizers.Powell], [self._budget // 2, self._budget // 4]) \
-            (parametrization=self._instru, budget=self._budget)
+                                      ng.optimizers.Powell], [self._budget // 2, self._budget // 4])(
+            parametrization=self._instru, budget=self._budget)
         return opt
 
     def _register_callbacks(self, opt, progress_recorder=None):
