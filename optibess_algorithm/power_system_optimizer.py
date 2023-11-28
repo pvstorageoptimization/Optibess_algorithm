@@ -4,6 +4,7 @@ import time
 from abc import ABC, abstractmethod
 import numpy as np
 import nevergrad as ng
+import pandas as pd
 
 from .constants import MAX_BATTERY_HOURS
 from .financial_calculator import FinancialCalculator
@@ -430,13 +431,14 @@ if __name__ == '__main__':
     logging.getLogger().setLevel(logging.INFO)
     # setup power system
     storage = LithiumPowerStorage(25, 5000, use_default_aug=True)
-    producer = PvProducer("../../test docs/Sushevo_Project.CSV", pv_peak_power=150000)
+    producer = PvProducer(pv_output_file="test.csv", pv_peak_power=15000)
     output = OutputCalculator(25, 5000, producer, storage, save_all_results=False)
-    test = FinancialCalculator(output, 1000)
+    test = FinancialCalculator(output, 100, transition_low_factor=1.04, transition_high_factor=3.91,
+                               summer_low_factor=1.04, summer_high_factor=3.91)
 
     # start optimization
     start_time = time.time()
-    optimizer = NevergradOptimizer(test, budget=2000, max_no_change_steps=30)
+    optimizer = NevergradOptimizer(test, budget=2000)
     opt_output, res = optimizer.run()
     # print results
     print(optimizer.get_candid(opt_output), res)
