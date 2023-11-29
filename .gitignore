@@ -1,4 +1,3 @@
-/example_tariffs2.csv
 /docs/conf.py
 /docs/_templates/
 /docs/_static/
@@ -6,4 +5,3 @@
 /.mypy_cache/
 /optibess_algorithm.egg-info/
 /.tox/
-/optibess_algorithm/example_tariffs2.csv

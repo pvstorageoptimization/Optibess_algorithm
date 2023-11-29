@@ -17,8 +17,6 @@ DEFAULT_RTE_TABLE = (0.95, 0.95, 0.948, 0.948, 0.948, 0.945, 0.945, 0.945, 0.945
 
 root_folder = os.path.dirname(os.path.abspath(__file__))
 
-EXAMPLE_TARIFFS = np.loadtxt(os.path.join(root_folder, "example_tariffs.csv"), delimiter=",", dtype=float)
-
 # data structure for defualts
 RangedValue = namedtuple('RangedValue', 'min max default')
 CoordinateLimits = namedtuple('CoordinateLimits', 'min max')
