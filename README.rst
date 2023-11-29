@@ -7,6 +7,8 @@ the *Optibess* site.
 
 .. image:: https://github.com/pvstorageoptimization/Optibess_algorithm/workflows/Tests/badge.svg
    :target: https://github.com/pvstorageoptimization/Optibess_algorithm/actions?query=workflow%3ATests
+.. image:: https://codecov.io/gh/pvstorageoptimization/Optibess_algorithm/graph/badge.svg?token=L3VLK1Y1SM
+    :target: https://codecov.io/gh/pvstorageoptimization/Optibess_algorithm
 
 Quick start
 ------------
