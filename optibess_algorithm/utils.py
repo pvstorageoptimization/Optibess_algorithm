@@ -8,9 +8,11 @@ import pandas as pd
 def shift_array(arr, num, fill_value=np.nan):
     """
     shift the array num places to the right
+
     :param arr: the array
     :param num: number of places to shift
     :param fill_value: a value to fill empty spaces in shifted array (should be a value of the same type
+
     :return: the shifted array
     """
     result = np.empty_like(arr)
@@ -30,6 +32,7 @@ def shift_array(arr, num, fill_value=np.nan):
 def year_diff(end_date: pd.DatetimeIndex | pd.Timestamp, start_date: pd.DatetimeIndex | pd.Timestamp):
     """
     calculate the difference in years between 2 dateTime or timestamp (a series and a single date or 2 series)
+
     :param end_date: the end date
     :param start_date: the start date
     """
@@ -43,6 +46,7 @@ def month_diff(end_date: pd.DatetimeIndex | pd.Timestamp, start_date: pd.Datetim
     """
     calculate the difference in months between 2 series of dateTime or timestamp of the same length (a series and a
     single date or 2 series)
+
     :param end_date: the end date
     :param start_date: the start date
     """
@@ -53,6 +57,7 @@ def _check_cover_no_overlap(cover_range: Union[list[int], tuple[int, ...]], over
                             cover_error_msg: str, *args: Union[list[int], tuple[int, ...]]):
     """
     check the given lists/tuples cover the given cover range and has no overlapping elements
+
     :param cover_range: the range the args should cover
     :param overlap_error_msg: error message when there is overlap
     :param cover_error_msg: error message where lists/tuples doesn't cover
@@ -78,6 +83,7 @@ def build_tariff_table(
 ):
     """
     create a tariff table containing the tariff in each hour for each month
+
     :param winter_months: months considered winter
     :param transition_months: months considered transition
     :param summer_months: months considered summer

@@ -115,6 +115,7 @@ class LithiumPowerStorage(PowerStorage):
                  ):
         """
         initialize the power storage
+
         :param num_of_years: number of years the battery is expected to work
         :param connection_size: the size of the connection to the battery (kW)
         :param degradation_table: a tuple containing the degradation level of the battery in each year
@@ -259,6 +260,7 @@ class LithiumPowerStorage(PowerStorage):
         """
         changes the number of hours the battery should supply (and variables effected by it). Overwrites current
         augmentation table
+
         :param new_value: the new value for the hours supplied by the battery
         """
         if not 0 <= new_value <= constants.MAX_BATTERY_HOURS:

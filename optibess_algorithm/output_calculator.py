@@ -44,6 +44,7 @@ class OutputCalculator:
                  producer_factor: float = 1):
         """
         initialize the calculator with info on the system
+
         :param num_of_years: number of year to calculate the output for
         :param grid_size: the size of the grid connection (kwh)
         :param producer: the producer for the system
@@ -490,6 +491,7 @@ class OutputCalculator:
     def _get_data(self, year: int):
         """
         create the basic dataframe for the year (indexed by the date, with values of the pv system output)
+
         :param year: the number of year in the simulation (first year is 0)
         """
         # in the first year Copy the power values for the initial source
@@ -536,6 +538,7 @@ class OutputCalculator:
         """
         calculate the degradation of the battery for the given date, given the date of the start of the augmentation
         (using a value between the degradation values in the table, according to the number of months adn days passed)
+
         :param date: the date of the day
         :param aug_initial_date: the date of the start of the augmentation
         """
@@ -699,6 +702,7 @@ class OutputCalculator:
         """
         calculate the battery soc before daily discharge (including power accounting for losses due to discharge), using
         only power from pv
+
         :param year: the number of year in the simulation (first year is 0)
         """
         reductions = np.column_stack((np.maximum(self._indices - 12, 0), self._indices)).ravel()
@@ -735,6 +739,7 @@ class OutputCalculator:
     def _calc_grid_to_bess(self, year: int):
         """
         calculate the power needed from the grid to fill the battery
+
         :param year: the number of year in the simulation (first year is 0)
         """
         # calculate the available bandwidth of the connection to the battery for charge (the connection size minus the
@@ -807,6 +812,7 @@ class OutputCalculator:
     def _calc_power_to_grid(self, year: int):
         """
         calculate the hourly power transmitted to the grid from both pv and bess
+
         :param year: the number of year in the simulation (first year is 0)
         """
         # calculate hourly pv to grid and gri
@@ -884,6 +890,7 @@ class OutputCalculator:
     def _calc_soc(self, year, bat_deg_ratio):
         """
         calculate soc of the battery in every hour
+
         :param year: the number of year in the simulation (first year is 0)
         :param bat_deg_ratio: the ratio of the degradation for the battery in this year by to the one for the next year
         """
@@ -954,6 +961,7 @@ class OutputCalculator:
             output - power form pv+bess to grid (after losses),
             battery_nameplate - the nameplate value of the battery,
             acc_losses - the accumulated losses of the system (only when save_all_results is true))
+
         also save hourly output (last entry) to 'output'
         """
         # reset augmentations variables
@@ -988,6 +996,7 @@ class OutputCalculator:
     def monthly_averages(self, years: Iterable[int] = (0,), stat: str = 'output'):
         """
         calculate and print the average in each hour for each month across the given years
+
         :param years: iterable of years to calculate for (refer to years since year one, acceptable values are between
             0, inclusive, and num_of_years, exclusive)
         :param stat: the stat to calculate
@@ -1020,6 +1029,7 @@ class OutputCalculator:
     def plot_stat(self, years: Iterable[int] | None = None, stat: str = "output"):
         """
         plot a graph of the given stat over the years
+
         :param years: iterable of years to calculate for (refer to years since year one, acceptable values are between
             0, inclusive, and num_of_years, exclusive)
         :param stat: the stat to plot

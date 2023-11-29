@@ -1,6 +1,6 @@
-from Optibess_algorithm.output_calculator import OutputCalculator
-from Optibess_algorithm.producers import PvProducer
-from Optibess_algorithm.power_storage import LithiumPowerStorage
+from optibess_algorithm.output_calculator import OutputCalculator
+from optibess_algorithm.producers import PvProducer
+from optibess_algorithm.power_storage import LithiumPowerStorage
 
 import numpy as np
 

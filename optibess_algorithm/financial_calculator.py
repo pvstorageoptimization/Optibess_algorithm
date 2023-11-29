@@ -45,6 +45,7 @@ class FinancialCalculator:
                  buy_from_grid_factor: float = 1.0):
         """
         initialize the calculator with info on the system
+
         :param capex_per_land_unit: capital cost per unit of land (shekel)
         :param opex_per_land_unit: operational cost per unit of land (shekel)
         :param capex_per_kwp: capital cost per kW of peak power ($)
@@ -270,6 +271,7 @@ class FinancialCalculator:
     def _set_battery_size(self, value: tuple[tuple[int, int, float]]):
         """
         calculate the battery size for each year
+
         :param value: an augmentation table
         """
         self._battery_size = []
@@ -525,6 +527,7 @@ class FinancialCalculator:
     def get_hourly_tariff(self, year):
         """
         create a matrix of hourly tariff in each day of the given year
+
         :param year: the year to calculate for (in 4 digits)
         :return: a numpy array with the tariffs
         """
@@ -540,12 +543,14 @@ class FinancialCalculator:
                         no_purchase: bool = False):
         """
         calculate the yearly income according to the given power_output
+
         :param power_output: list of hourly output of the system for each year(list of pandas series, with datetime
             indices). if None takes info from output_calculator
         :param cpi: the consumer price index in the market in decimal (if none uses the calculator's cpi)
         :param purchased_from_grid: list of hourly amount purchased from grid to fill battery (list of pandas series).
             if None takes info from output_calculator
         :param no_purchase: whether to not use purchases from grid in the calculation
+
         :return: list of income per year
         """
         # get default values from output
@@ -579,6 +584,7 @@ class FinancialCalculator:
     def get_power_purchases_cost(self, purchased_from_grid=None, cpi: float | None = None):
         """
         calculate the cost of purchases from grid
+
         :param purchased_from_grid: list of hourly amount purchased from grid to fill battery (list of pandas series,
             with datetime indices). if None takes info from output_calculator
         :param cpi: the consumer price index in the market in decimal (if none uses the calculator's cpi)
@@ -602,7 +608,9 @@ class FinancialCalculator:
     def get_expenses(self, cpi: float | None = None):
         """
         calculate yearly expenses (capex+opex)
+
         :param cpi: the yearly cpi in the market in decimal (if none uses the calculator's cpi)
+
         :return: list of expenses per year
         """
         if cpi is None:
@@ -632,10 +640,12 @@ class FinancialCalculator:
 
     def get_producer_expenses(self, cpi: float | None = None):
         """
-                calculate yearly expenses of power production (capex+opex)
-                :param cpi: the yearly cpi in the market in decimal (if none uses the calculator's cpi)
-                :return: list of expenses per year
-                """
+        calculate yearly expenses of power production (capex+opex)
+
+        :param cpi: the yearly cpi in the market in decimal (if none uses the calculator's cpi)
+
+        :return: list of expenses per year
+        """
         if cpi is None:
             cpi = self._cpi
 
@@ -658,7 +668,9 @@ class FinancialCalculator:
     def get_bess_expenses(self, cpi: float | None = None):
         """
         calculate yearly expenses on bess (capex+opex)
+
         :param cpi: the yearly cpi in the market in decimal (if none uses the calculator's cpi)
+
         :return: list of expenses per year
         """
         if cpi is None:
@@ -687,10 +699,12 @@ class FinancialCalculator:
     def get_cash_flow(self, power_output=None, purchased_from_grid=None):
         """
         calculate the cash flow of the system
+
         :param power_output: list of hourly output of the system for each year(list of pandas series, with datetime
             indices). if None takes info from output_calculator
         :param purchased_from_grid: list of hourly amount purchased from grid to fill battery (list of pandas series).
             if None takes info from output_calculator
+
         :returns income, expenses and revenues of the system
         """
         income = self.get_power_sales(power_output=power_output, purchased_from_grid=purchased_from_grid)
@@ -701,6 +715,7 @@ class FinancialCalculator:
     def get_irr(self, power_output=None, purchased_from_grid=None):
         """
         calculates the irr for the system
+
         :param power_output: list of hourly output of the system for each year(list of pandas series). if None takes
             info from output_calculator
         :param purchased_from_grid: list of hourly amount purchased from grid to fill battery (list of pandas series).
@@ -713,6 +728,7 @@ class FinancialCalculator:
     def get_npv(self, rate: float = 10, power_output=None, purchased_from_grid=None):
         """
         calculates the npv for the system
+
         :param rate: rate for the npv (in percent)
         :param power_output: list of hourly output of the system for each year(list of pandas series). if None takes
             info from output_calculator
@@ -725,11 +741,13 @@ class FinancialCalculator:
     def get_lcoe(self, power_output=None, purchased_from_grid=None):
         """
         calculate the lcoe for the system
+
         :param power_output: list of hourly output of the system for each year(list of pandas series). if None takes
             info from output_calculator
         :param purchased_from_grid: list of hourly amount purchased from grid to fill battery (list of pandas series,
             with datetime indices).
             if None takes info from output_calculator
+
         :return: lcoe for the system
         """
         # get default values from output
@@ -759,6 +777,7 @@ class FinancialCalculator:
     def get_lcoe_no_power_costs(self, power_output=None):
         """
         calculated the lcoe for the system without the costs of power purchased from the grid
+
         :param power_output: list of hourly output of the system for each year(list of pandas series, with datetime
             indices). if None takes info from output_calculator
         :return: lcoe for the system without purchases from grid
@@ -800,6 +819,7 @@ class FinancialCalculator:
     def plot_cash_flow(self, power_output=None, purchased_from_grid=None):
         """
         plot the cash flow of the system
+
         :param power_output: list of hourly output of the system for each year(list of pandas series). if None takes
             info from output_calculator
         :param purchased_from_grid: list of hourly amount purchased from grid to fill battery (list of pandas series).
@@ -811,8 +831,6 @@ class FinancialCalculator:
 
 
 if __name__ == '__main__':
-    import os
-
     # ((0, 1660), (84, 1001), (120, 949), (168, 377), (216, 232), (252, 119))
     storage = LithiumPowerStorage(25, 100000, aug_table=((288, 1),))
     producer = PvProducer("../../../test docs/Sushevo_Project.CSV", pv_peak_power=150000)

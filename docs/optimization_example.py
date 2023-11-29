@@ -1,6 +1,6 @@
 import logging
 import time
-from Optibess_algorithm.power_system_optimizer import NevergradOptimizer
+from optibess_algorithm.power_system_optimizer import NevergradOptimizer
 
 # make info logging show
 logging.getLogger().setLevel(logging.INFO)

@@ -33,6 +33,7 @@ def get_pvlib_output(latitude: float, longitude: float, tilt: float = constants.
                      losses: float = constants.DEFAULT_LOSSES) -> pd.Series:
     """
     calculate the output of a pv system using pvlib
+
     :param latitude: the latitude of the location of the system
     :param longitude: the longitude of the location of the system
     :param tilt: the tilt of the system
@@ -46,8 +47,8 @@ def get_pvlib_output(latitude: float, longitude: float, tilt: float = constants.
     :param use_bifacial: flag for bifacial calculation
     :param albedo: the albedo of the ground for bifacial calculation
     :param losses: the additional losses of the system (cable, transformers, etc.) (in percentage)
-    :returns:
-        a pandas series with the hourly pv output of the system (with date and hour as index)
+
+    :returns: a pandas series with the hourly pv output of the system (with date and hour as index)
     """
     if number_of_inverters <= 0:
         raise ValueError("Number of units should be positive")
@@ -125,6 +126,7 @@ def get_pvgis_hourly(latitude: float, longitude: float, tilt: float = constants.
                      tech: Tech = Tech.FIXED, losses=constants.DEFAULT_LOSSES):
     """
     get hourly data from pvgis
+
     :param latitude: latitude of the location
     :param longitude: longitude of the location
     :param tilt: the tilt of the pv array
@@ -132,8 +134,8 @@ def get_pvgis_hourly(latitude: float, longitude: float, tilt: float = constants.
     :param pv_peak: the peak power of the pv system
     :param tech: true if using tacker, false for fixed
     :param losses: the system estimate losses
-    :returns:
-        raw_data: a dataframe with hourly pv output (date and hour as index)
+
+    :returns: a dataframe with hourly pv output (date and hour as index)
     """
     if tech == Tech.EAST_WEST:
         # get data for east and for west, each with half the peak power

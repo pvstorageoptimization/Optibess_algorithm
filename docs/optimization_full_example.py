@@ -1,9 +1,9 @@
-from Optibess_algorithm.constants import MAX_BATTERY_HOURS
-from Optibess_algorithm.financial_calculator import FinancialCalculator
-from Optibess_algorithm.output_calculator import OutputCalculator
-from Optibess_algorithm.power_storage import LithiumPowerStorage
-from Optibess_algorithm.producers import PvProducer
-from Optibess_algorithm.power_system_optimizer import NevergradOptimizer
+from optibess_algorithm.constants import MAX_BATTERY_HOURS
+from optibess_algorithm.financial_calculator import FinancialCalculator
+from optibess_algorithm.output_calculator import OutputCalculator
+from optibess_algorithm.power_storage import LithiumPowerStorage
+from optibess_algorithm.producers import PvProducer
+from optibess_algorithm.power_system_optimizer import NevergradOptimizer
 
 import logging
 import time

@@ -1,6 +1,5 @@
 import os
 from collections import namedtuple
-import numpy as np
 
 # degradation of battery for each year
 DEFAULT_DEG_TABLE = (1.0, 0.9244, 0.8974, 0.8771, 0.8602, 0.8446, 0.8321, 0.8191, 0.8059, 0.7928, 0.7796, 0.7664,

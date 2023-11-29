@@ -4,7 +4,6 @@ import time
 from abc import ABC, abstractmethod
 import numpy as np
 import nevergrad as ng
-import pandas as pd
 
 from .constants import MAX_BATTERY_HOURS
 from .financial_calculator import FinancialCalculator
@@ -21,6 +20,7 @@ class PowerSystemOptimizer(ABC):
                  max_aug_num: int = 6, initial_aug_num: int | None = None, budget: int = 2000):
         """
         initialize the simulation objects for the optimizer
+
         :param financial_calculator: calculator to use for objective function
         :param use_memory: whether to use memory to get score for already calculated values
         :param max_aug_num: the maximum number of augmentations the optimizer will try in a solution
@@ -74,6 +74,7 @@ class PowerSystemOptimizer(ABC):
     def get_aug_table(self, arr) -> tuple[tuple[int, int], ...]:
         """
         create a preliminary augmentation table (As tuple of tuples) for the given collection
+
         :param arr: a collection (array-like, dict, tensor, etc.) containing the months and then the nuber of blocks for
             the augmentation table
         """
@@ -83,6 +84,7 @@ class PowerSystemOptimizer(ABC):
         """
         create a candid for the optimization (a tuple containing: a tuple of tuples for the aug table and another number
         for the percent of producer used)
+
         :param arr - a collection (array-like, dict, tensor, etc.) containing info for a candid
         """
         aug_table = self.get_aug_table(arr)
@@ -93,6 +95,7 @@ class PowerSystemOptimizer(ABC):
         """
         an objective function that returns the irr given an augmentation table (gives negative value for invalid
         augmentation table)
+
         :param arr: a collection (array-like, dict, tensor, etc.) containing info for a candid
         """
         # create candid solution from parameters
@@ -129,6 +132,7 @@ class PowerSystemOptimizer(ABC):
         """
         an objective function that returns minus the irr given an augmentation table (gives negative value for invalid
         augmentation table)
+
         :param arr: a collection (array-like, dict, tensor, etc.) containing the months and then the nuber of blocks for
             the augmentation table
         """
@@ -152,6 +156,7 @@ class PowerSystemOptimizer(ABC):
     def _optimize(self, progress_recorder=None):
         """
         runs the optimization itself (after parameters and constraints are created)
+
         :param progress_recorder: an object that record the progress of the task (should have method set_progress)
         """
         pass
@@ -159,6 +164,7 @@ class PowerSystemOptimizer(ABC):
     def run(self, progress_recorder=None):
         """
         runs optimization
+
         :param progress_recorder: an object that record the progress of the task (should have method set_progress)
         """
         self._set_variables()
@@ -173,6 +179,7 @@ class NevergradOptimizer(PowerSystemOptimizer):
                  max_no_change_steps: int | None = None, min_change_size: float = 0.0001, verbosity: int = 2):
         """
         initialize the simulation objects for the optimizer
+
         :param financial_calculator: calculator to use for objective function
         :param use_memory: whether to use memory to get score for already calculated values
         :param max_aug_num: the maximum number of augmentations the optimizer will try in a solution
@@ -256,6 +263,7 @@ class NevergradOptimizer(PowerSystemOptimizer):
     def _register_callbacks(self, opt, progress_recorder=None):
         """
         create callbacks function for the optimizer and register them
+
         :param opt: the optimizer
         :param progress_recorder: an object that record the progress of the task (should have method set_progress)
         """
@@ -321,6 +329,7 @@ class NevergradDerivativeOptimizer(NevergradOptimizer):
     def _check_param_diff(self, arr, tol):
         """
         check if the difference between the given solution and the saved parameters is in the acceptable tolerance
+
         :param arr: the given solution
         :param tol: the tolerance
         """
@@ -339,6 +348,7 @@ class NevergradDerivativeOptimizer(NevergradOptimizer):
         """
         an objective function that returns the irr given an augmentation table (gives negative value for invalid
         augmentation table)
+
         :param arr: a collection (array-like, dict, tensor, etc.) containing info for a candid
         """
         candid = self.get_candid(arr)

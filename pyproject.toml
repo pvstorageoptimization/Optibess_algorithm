@@ -2,6 +2,50 @@
 requires = ["setuptools>=63.0"]
 build-backend = "setuptools.build_meta"
 
+[project]
+name = "optibess_algorithm"
+version = "0.1.0"
+description = "Optibess Algorithm is a python 3.10+ library for simulating and optimizing a photovoltaic system with power storage."
+authors = [{ name = "Elmor Renewable Energies Dev Team" }]
+readme = "README.rst"
+license = {file = "LICENSE"}
+keywords = ["solar", "PV", "optimization", "power storage", "BESS", ]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = [
+    "numpy>=1.24.2",
+    "numpy-financial==1.0.0",
+    "pandas>=2.1.3",
+    "matplotlib>=3.7.1",
+    "nevergrad==0.6.0",
+    "timezonefinder==6.1.9",
+    "pvlib==0.10.2",
+    "solarfactors>=1.5.3",
+]
+requires-python = ">=3.10"
+
+[project.optional-dependencies]
+testing = [
+    "flake8>=6.1.0",
+    "mypy>=1.7.0",
+    "tox>=4.11.3",
+]
+
+[project.urls]
+homepage = "https://github.com/pvstorageoptimization/Optibess_algorithm.git"
+
+[tool.setuptools]
+packages = ["optibess_algorithm"]
+
+[tool.setuptools.package-data]
+optibess_algorithm = ["*.csv"]
+
 [tool.mypy]
 mypy_path = "optibess_algorithm"
 disallow_any_generics = true
