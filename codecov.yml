@@ -1,2 +1,3 @@
-ignore:
-  - "test*.py"
+coverage:
+  ignore:
+    - "tests"
