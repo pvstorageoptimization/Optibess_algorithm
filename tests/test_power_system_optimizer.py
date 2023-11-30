@@ -1,5 +1,6 @@
 import unittest
-from unittest.mock import Mock, call
+from typing import Any, Callable, Union
+from unittest.mock import Mock, call, patch
 import numpy as np
 
 from optibess_algorithm.financial_calculator import FinancialCalculator
@@ -17,9 +18,19 @@ class MockAugTableProperty:
         raise ValueError
 
 
+class MockParameterization:
+
+    def __init__(self):
+        self.constraints = dict()
+
+    def register_cheap_constraint(self, func: Union[Callable[[Any], bool], Callable[[Any], float]]):
+        self.constraints[getattr(func, '__name__', repr(func))] = func
+
+
 class TestPowerSystemOptimizer(unittest.TestCase):
 
     def setUp(self) -> None:
+        # create mocks for simulation objects
         self.finance = Mock(spec=FinancialCalculator)
         type(self.finance).num_of_years = 25
         self.output = Mock(spec=OutputCalculator)
@@ -63,16 +74,19 @@ class TestPowerSystemOptimizer(unittest.TestCase):
         self.assertEqual(opt._def_aug_diff, 5)
 
     def test_creation_incorrect_max_aug_num(self):
+        # check for error in creation
         with self.assertRaises(ValueError) as e:
             NevergradOptimizer(self.finance, max_aug_num=0)
         self.assertEqual(str(e.exception), "Number of maximum augmentations should be at least 1")
 
     def test_creation_incorrect_initial_aug_num(self):
+        # check for error in creation
         with self.assertRaises(ValueError) as e:
             NevergradOptimizer(self.finance, initial_aug_num=-3)
         self.assertEqual(str(e.exception), "Number of maximum augmentations should be at least 1")
 
     def test_creation_incorrect_budget(self):
+        # check for error in creation
         with self.assertRaises(ValueError) as e:
             NevergradOptimizer(self.finance, budget=0)
         self.assertEqual(str(e.exception), "Optimization budget should be at least 1")
@@ -106,7 +120,7 @@ class TestPowerSystemOptimizer(unittest.TestCase):
         self.output.run.assert_not_called()
 
     def test_maximize_objective_invalid_aug_table(self):
-        # setup inputs and mocks
+        # setup inputs and mock aug table property to return error
         type(self.output).aug_table = MockAugTableProperty()
         opt = NevergradOptimizer(self.finance)
 
@@ -134,6 +148,43 @@ class TestPowerSystemOptimizer(unittest.TestCase):
         result = opt.get_aug_table((0, 5, 8, 0, 0, 0, 100, 20, 20, 0, 0, 0, 98))
         self.assertEqual(result, ((0, 100), (60, 20), (96, 20)))
 
+    def test_months_diff_constraint_valid(self):
+        # set inputs
+        opt = NevergradOptimizer(self.finance)
+        opt._instru = MockParameterization()
+        opt._set_constraints()
+        # check output
+        self.assertTrue(opt._instru.constraints["constraints_gen"]((0, 5, 8, 12, 15, 20, 100, 20, 20, 0, 0, 0, 98)))
+
+    def test_months_diff_constraint_invalid(self):
+        # set inputs
+        opt = NevergradOptimizer(self.finance)
+        opt._instru = MockParameterization()
+        opt._set_constraints()
+        # check output
+        self.assertFalse(opt._instru.constraints["constraints_gen"]((0, 2, 8, 12, 15, 20, 100, 20, 20, 0, 0, 0, 98)))
+
+    def test_battery_size_constraint_valid(self):
+        # set inputs
+        self.power_storage.check_battery_size = Mock(return_value=True)
+        opt = NevergradOptimizer(self.finance)
+        opt._instru = MockParameterization()
+        opt._set_constraints()
+        # check output
+        self.assertTrue(opt._instru.constraints["check_battery_size"]((0, 5, 8, 12, 15, 20, 100, 20, 20, 0, 0, 0, 98)))
+
+    def test_battery_size_constraint_invalid(self):
+        # set inputs
+        self.power_storage.check_battery_size = Mock(return_value=False)
+        opt = NevergradOptimizer(self.finance)
+        opt._instru = MockParameterization()
+        opt._set_constraints()
+        # check output
+        with patch("optibess_algorithm.power_system_optimizer.logging.warning") as mock_warning:
+            self.assertFalse(opt._instru.constraints["check_battery_size"](
+                (0, 5, 8, 12, 15, 20, 500, 20, 20, 0, 0, 0, 98)))
+            mock_warning.assert_called_once()
+
     def test_run(self):
         # set inputs
         type(self.finance).get_irr = Mock(return_value=14.5)
@@ -148,3 +199,18 @@ class TestPowerSystemOptimizer(unittest.TestCase):
         self.assertEqual(type(result[1]), float)
         progress_recorder.set_progress.assert_has_calls([call(i, 4) for i in range(1, 5)])
         self.assertEqual(progress_recorder.set_progress.call_count, 4)
+
+    def test_early_stopping(self):
+        # set inputs
+        type(self.finance).get_irr = Mock(return_value=14.5)
+        type(self.output).run = Mock()
+        type(self.output).num_of_years = 25
+        progress_recorder = Mock()
+        progress_recorder.set_progress = Mock()
+        opt = NevergradOptimizer(self.finance, budget=12, max_no_change_steps=3)
+        # check outputs (simulation only called 9 times)
+        result = opt.run(progress_recorder)
+        self.assertEqual(type(result[0]), tuple)
+        self.assertEqual(type(result[1]), float)
+        progress_recorder.set_progress.assert_has_calls([call(i, 12) for i in range(1, 10)])
+        self.assertEqual(progress_recorder.set_progress.call_count, 9)

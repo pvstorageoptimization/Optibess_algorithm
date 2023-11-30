@@ -82,119 +82,152 @@ class TestFinancialCalculator(unittest.TestCase):
         finance._set_battery_connection_size.assert_called_once_with(finance._battery_connection_size)
 
     def test_creation_incorrect_land_size(self):
+        # check for error in creation
         with self.assertRaises(ValueError) as e:
             FinancialCalculator(output_calculator=self.output, land_size=0)
         self.assertEqual(str(e.exception), "Land size should be positive")
 
     def test_creation_incorrect_land_capex(self):
+        # check for error in creation
         with self.assertRaises(ValueError) as e:
             FinancialCalculator(output_calculator=self.output, capex_per_land_unit=-1)
         self.assertEqual(str(e.exception), "Capex per land unit should be non negative")
 
     def test_creation_incorrect_land_opex(self):
+        # check for error in creation
         with self.assertRaises(ValueError) as e:
             FinancialCalculator(output_calculator=self.output, opex_per_land_unit=-2)
         self.assertEqual(str(e.exception), "Opex per land unit should be non negative")
 
     def test_set_usd_to_ils_incorrect_value(self):
+        # create financial calculator
         result = FinancialCalculator(output_calculator=self.output)
+        # check for error in setter
         with self.assertRaises(ValueError) as e:
             result.usd_to_ils = -1
         self.assertEqual(str(e.exception), "Dollar to shekel exchange should be non negative")
 
     def test_creation_incorrect_power_capex(self):
+        # check for error in creation
         with self.assertRaises(ValueError) as e:
             FinancialCalculator(output_calculator=self.output, capex_per_kwp=-4)
         self.assertEqual(str(e.exception), "Capex per kWp should be non negative")
 
     def test_creation_incorrect_power_opex(self):
+        # check for error in creation
         with self.assertRaises(ValueError) as e:
             FinancialCalculator(output_calculator=self.output, opex_per_kwp=-67)
         self.assertEqual(str(e.exception), "Opex per kWp should be non negative")
 
     def test_creation_incorrect_battery_capex(self):
+        # check for error in creation
         with self.assertRaises(ValueError) as e:
             FinancialCalculator(output_calculator=self.output, battery_capex_per_kwh=-3)
         self.assertEqual(str(e.exception), "Capex per battery kWh should be non negative")
 
     def test_creation_incorrect_battery_opex(self):
+        # check for error in creation
         with self.assertRaises(ValueError) as e:
             FinancialCalculator(output_calculator=self.output, battery_opex_per_kwh=-10)
         self.assertEqual(str(e.exception), "Opex per battery kWh should be non negative")
 
     def test_creation_incorrect_battery_connection_capex(self):
+        # check for error in creation
         with self.assertRaises(ValueError) as e:
             FinancialCalculator(output_calculator=self.output, battery_connection_capex_per_kw=-5)
         self.assertEqual(str(e.exception), "Capex per kw of battery connection should be non negative")
 
     def test_creation_incorrect_battery_connection_opex(self):
+        # check for error in creation
         with self.assertRaises(ValueError) as e:
             FinancialCalculator(output_calculator=self.output, battery_connection_opex_per_kw=-36)
         self.assertEqual(str(e.exception), "Opex per kw of battery connection should be non negative")
 
     def test_creation_incorrect_tariff_table(self):
+        # check for error in creation
         with self.assertRaises(ValueError) as e:
             FinancialCalculator(output_calculator=self.output, tariff_table=np.ones((15, 24)))
         self.assertEqual(str(e.exception), "Tariff table should be of shape (12, 24)")
 
     def test_set_fixed_capex_incorrect_value(self):
+        # create financial calculator
         result = FinancialCalculator(output_calculator=self.output)
+        # check for error in setter
         with self.assertRaises(ValueError) as e:
             result.fixed_capex = -2
         self.assertEqual(str(e.exception), "Fixed capex should be non negative")
 
     def test_set_fixed_opex_incorrect_value(self):
+        # create financial calculator
         result = FinancialCalculator(output_calculator=self.output)
+        # check for error in setter
         with self.assertRaises(ValueError) as e:
             result.fixed_opex = -0.3
         self.assertEqual(str(e.exception), "Fixed opex should be non negative")
 
     def test_set_interest_rate_incorrect_value(self):
+        # create financial calculator
         result = FinancialCalculator(output_calculator=self.output)
+        # check for error in setter
         with self.assertRaises(ValueError) as e:
             result.interest_rate = -0.5
         self.assertEqual(str(e.exception), "Interest rate should be non negative")
 
     def test_set_cpi_incorrect_value(self):
+        # create financial calculator
         result = FinancialCalculator(output_calculator=self.output)
+        # check for error in setter
         with self.assertRaises(ValueError) as e:
             result.cpi = -3
         self.assertEqual(str(e.exception), "CPI should be non negative")
 
     def test_set_battery_cost_deg_incorrect_value(self):
+        # create financial calculator
         result = FinancialCalculator(output_calculator=self.output)
+        # check for error in setter
         with self.assertRaises(ValueError) as e:
             result.battery_cost_deg = 1
         self.assertEqual(str(e.exception), "Battery cost degradation should be between 0 (inclusive) and 1 (exclusive)")
 
     def test_set_buy_from_grid_factor_incorrect_value(self):
+        # create financial calculator
         result = FinancialCalculator(output_calculator=self.output)
+        # check for error in setter
         with self.assertRaises(ValueError) as e:
             result.buy_from_grid_factor = -0.7
         self.assertEqual(str(e.exception), "Factor for buying from grid should be non negative")
 
     def test_set_output_calculator_incorrect_type(self):
+        # create financial calculator
         result = FinancialCalculator(output_calculator=self.output)
+        # check for error in setter
         with self.assertRaises(ValueError) as e:
             result.output_calculator = np.zeros((4, 5))
         self.assertEqual(str(e.exception), "Output calculator should be an instance of OutputCalculator")
 
     def test_creation_build_tariff_table_check(self):
+        # create financial calculator
         result = FinancialCalculator(output_calculator=self.output)
+        # check for error in setter
         data = np.loadtxt(os.path.join(test_folder, "financial_calculator/build_tariff_table_result.csv"),
                           delimiter=",")
         nptesting.assert_array_almost_equal(result._tariff_table, data.reshape((7, 12, 24)), 2)
 
     def test_get_hourly_tariff_values(self):
+        # create financial calculator
         finance = FinancialCalculator(output_calculator=self.output)
+        # call function
         result = finance.get_hourly_tariff(2023)
+        # check output
         nptesting.assert_allclose(result, np.loadtxt(os.path.join(test_folder,
                                                                   "financial_calculator/hourly_tariff_output.csv")),
                                   atol=0.01)
 
     @patch.object(pd, 'date_range', side_effect=pd.date_range)
     def test_get_hourly_tariff_call_again(self, mock_date_range):
+        # create financial calculator
         finance = FinancialCalculator(output_calculator=self.output)
+        # call function twice
         finance.get_hourly_tariff(2023)
         finance.get_hourly_tariff(2023)
 
@@ -261,6 +294,7 @@ class TestFinancialCalculator(unittest.TestCase):
         self.assertEqual(finance.get_hourly_tariff.call_count, self.output.num_of_years)
 
     def test_power_sales_calculator_data_no_purchase_flag(self):
+        # set inputs
         finance, power_output = self.addition_setup_power_sales()
         type(self.output).output = power_output
         purchase_data = np.loadtxt(os.path.join(test_folder, "financial_calculator/purchased_power_data1.csv"),
@@ -272,11 +306,13 @@ class TestFinancialCalculator(unittest.TestCase):
         self.assertEqual(finance.get_hourly_tariff.call_count, self.output.num_of_years)
 
     def test_power_sales_calculator_data_no_data_created(self):
+        # set inputs
         finance, power_output = self.addition_setup_power_sales()
         type(self.output).output = None
         type(self.output).purchased_from_grid = None
 
         def run_mock():
+            # mock run, purchased_from_grid get values from file
             type(self.output).output = power_output
             purchase_data = np.loadtxt(os.path.join(test_folder, "financial_calculator/purchased_power_data1.csv"),
                                        delimiter=",")
@@ -291,11 +327,13 @@ class TestFinancialCalculator(unittest.TestCase):
         self.output.run.assert_called_once()
 
     def test_power_sales_calculator_data_no_purchase_data_created(self):
+        # set inputs
         finance, power_output = self.addition_setup_power_sales()
         type(self.output).output = power_output
         type(self.output).purchased_from_grid = None
 
         def run_mock():
+            # mock run, purchased_from_grid get values from file
             purchase_data = np.loadtxt(os.path.join(test_folder, "financial_calculator/purchased_power_data1.csv"),
                                        delimiter=",")
             purchased_from_grid = [pd.Series(purchase_data[:, 0]), pd.Series(purchase_data[:, 1])]
@@ -345,6 +383,7 @@ class TestFinancialCalculator(unittest.TestCase):
         type(self.output).purchased_from_grid = None
 
         def run_mock():
+            # mock run, purchased_from_grid get values from file
             purchase_data = np.loadtxt(os.path.join(test_folder, "financial_calculator/purchased_power_data1.csv"),
                                        delimiter=",")
             purchased_from_grid = [pd.Series(purchase_data[:, 0], pd.date_range(start='2023-1-1 00:00',
@@ -502,6 +541,7 @@ class TestFinancialCalculator(unittest.TestCase):
         type(self.output).results = None
 
         def run_mock():
+            # mock run, results and purchased_from_grid get values from files
             power_output = np.loadtxt(os.path.join(test_folder, "financial_calculator/power_output_data1.csv"))
             calc_results = [pd.DataFrame({"grid_from_pv": [x / 2, x / 2], "bess_from_grid": [0, 0]}) for x in
                             power_output]
@@ -532,6 +572,7 @@ class TestFinancialCalculator(unittest.TestCase):
         type(self.output).purchased_from_grid = None
 
         def run_mock():
+            # mock run, purchased_from_grid get values from file
             purchase_data = np.loadtxt(os.path.join(test_folder, "financial_calculator/purchased_power_data1.csv"),
                                        delimiter=",")
             purchased_from_grid = [pd.Series(purchase_data[:, 0]), pd.Series(purchase_data[:, 1])]
@@ -557,6 +598,7 @@ class TestFinancialCalculator(unittest.TestCase):
         type(self.output).save_all_results = False
 
         def run_mock():
+            # mock run, results and purchased_from_grid get values from files
             power_output = np.loadtxt(os.path.join(test_folder, "financial_calculator/power_output_data1.csv"))
             calc_results = [pd.DataFrame({"grid_from_pv": [x / 2, x / 2], "bess_from_grid": [0, 0]}) for x in
                             power_output]
@@ -616,6 +658,7 @@ class TestFinancialCalculator(unittest.TestCase):
         type(self.output).results = None
 
         def run_mock():
+            # mock run, results get values from file
             power_output = np.loadtxt(os.path.join(test_folder, "financial_calculator/power_output_data1.csv"))
             calc_results = [pd.DataFrame({"grid_from_pv": [x / 2, x / 2], "bess_from_grid": [0, 0]}) for x in
                             power_output]
@@ -637,6 +680,7 @@ class TestFinancialCalculator(unittest.TestCase):
         type(self.output).save_all_results = False
 
         def run_mock():
+            # mock run, results get values from file
             power_output = np.loadtxt(os.path.join(test_folder, "financial_calculator/power_output_data1.csv"))
             calc_results = [pd.DataFrame({"grid_from_pv": [x / 2, x / 2], "bess_from_grid": [0, 0]}) for x in
                             power_output]
@@ -676,6 +720,7 @@ class TestFinancialCalculator(unittest.TestCase):
         type(self.output).results = None
 
         def run_mock():
+            # mock run, results get values from file
             type(self.output).results = [pd.DataFrame([output_results[i]], columns=["grid_from_bess"]) for i in
                                          range(output_results.shape[0])]
 
@@ -700,6 +745,7 @@ class TestFinancialCalculator(unittest.TestCase):
         type(self.output).save_all_results = False
 
         def run_mock():
+            # mock run, results get values from file
             type(self.output).results = [pd.DataFrame([output_results[i]], columns=["grid_from_bess"]) for i in
                                          range(output_results.shape[0])]
 

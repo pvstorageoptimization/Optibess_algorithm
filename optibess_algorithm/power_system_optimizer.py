@@ -241,8 +241,7 @@ class NevergradOptimizer(PowerSystemOptimizer):
                 return False
             return True
 
-        self._constraints = constraints_gen
-        self._instru.register_cheap_constraint(self._constraints)
+        self._instru.register_cheap_constraint(constraints_gen)
         self._instru.register_cheap_constraint(check_battery_size)
 
     def _create_optimizer(self):
