@@ -38,7 +38,8 @@ testing = [
 ]
 
 [project.urls]
-homepage = "https://github.com/pvstorageoptimization/Optibess_algorithm.git"
+homepage = "https://github.com/pvstorageoptimization/Optibess_algorithm"
+docs = "https://optibess-algorithm.readthedocs.io"
 
 [tool.setuptools]
 packages = ["optibess_algorithm"]
