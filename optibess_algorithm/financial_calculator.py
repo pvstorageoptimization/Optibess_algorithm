@@ -3,13 +3,10 @@ from typing import Any
 import numpy_financial as npf
 import pandas as pd
 import numpy as np
-import time
 import matplotlib.pyplot as plt
 
 from .output_calculator import OutputCalculator
 from . import constants
-from .producers import PvProducer
-from .power_storage import LithiumPowerStorage
 
 
 class FinancialCalculator:

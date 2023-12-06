@@ -1,8 +1,6 @@
 import logging
 import os
-import time
 from abc import ABC, abstractmethod
-import numpy as np
 import nevergrad as ng
 
 from .constants import MAX_BATTERY_HOURS

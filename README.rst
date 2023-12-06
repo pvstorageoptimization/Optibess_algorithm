@@ -45,5 +45,5 @@ optimization
 License
 =======
 
-`MIT <https://github.com/pvstorageoptimization/Optibess_algorithm/LICENSE>`_
+Optibess Algorithm is licensed under the `MIT license <LICENSE>`_
 
