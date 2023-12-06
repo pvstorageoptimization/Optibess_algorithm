@@ -11,11 +11,10 @@ the *Optibess* site.
 .. image:: https://codecov.io/gh/pvstorageoptimization/Optibess_algorithm/graph/badge.svg?token=L3VLK1Y1SM
     :target: https://codecov.io/gh/pvstorageoptimization/Optibess_algorithm
 
-|Documentation Status|
+|Documentation Status||PyPI version shields.io|
 .. |Documentation Status| image:: https://readthedocs.org/projects/optibess-algorithm/badge/?version=latest
    :target: http://optibess-algorithm.readthedocs.io/?badge=latest
 
-|PyPI version shields.io|
 .. |PyPI version shields.io| image:: https://img.shields.io/pypi/v/optibess-algorithm.svg
    :target: https://pypi.org/project/optibess-algorithm/
 
