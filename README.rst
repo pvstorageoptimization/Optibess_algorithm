@@ -12,6 +12,7 @@ the *Optibess* site.
     :target: https://codecov.io/gh/pvstorageoptimization/Optibess_algorithm
 
 |Documentation Status| |PyPI version shields.io|
+
 .. |Documentation Status| image:: https://readthedocs.org/projects/optibess-algorithm/badge/?version=latest
    :target: http://optibess-algorithm.readthedocs.io/?badge=latest
 
