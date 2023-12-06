@@ -13,13 +13,13 @@ the *Optibess* site.
 
 |Documentation Status|
 
-.. |Documentation Status| image:: https://readthedocs.org/projects/ansicolortags/badge/?version=latest
-   :target: http://ansicolortags.readthedocs.io/?badge=latest
+.. |Documentation Status| image:: https://readthedocs.org/projects//badge/?version=latest
+   :target: http://.readthedocs.io/?badge=latest
 
 |PyPI download total|
 
-.. |PyPI download total| image:: https://img.shields.io/pypi/dt/ansicolortags.svg
-   :target: https://pypi.python.org/pypi/ansicolortags/
+.. |PyPI download total| image:: https://img.shields.io/pypi/dt/.svg
+   :target: https://pypi.python.org/pypi/
 
 Quick start
 ------------
