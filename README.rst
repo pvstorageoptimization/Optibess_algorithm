@@ -1,5 +1,5 @@
 Optibess Algorithm - optimizing PV system combined with storage
-==============================================================
+===============================================================
 
 **Optibess Algorithm** is a python 3.10+ library for simulating and optimizing a photovoltaic system with power storage.
 It uses data from *pvgis* and algorithms from the *pvlib* and *Nevergrad* python libraries, and is the backend part of
@@ -11,15 +11,13 @@ the *Optibess* site.
 .. image:: https://codecov.io/gh/pvstorageoptimization/Optibess_algorithm/graph/badge.svg?token=L3VLK1Y1SM
     :target: https://codecov.io/gh/pvstorageoptimization/Optibess_algorithm
 
-|Documentation Status|
+|Documentation Status| |PyPI version shields.io|
 
-.. |Documentation Status| image:: https://readthedocs.org/projects/optibess-algorithm/badge/?version=stable
-   :target: http://optibess-algorithm.readthedocs.io/?badge=stable
+.. |Documentation Status| image:: https://readthedocs.org/projects/optibess-algorithm/badge/?version=latest
+   :target: http://optibess-algorithm.readthedocs.io/?badge=latest
 
-|PyPI download total|
-
-.. |PyPI download total| image:: https://img.shields.io/pypi/dt/.svg
-   :target: https://pypi.python.org/pypi/
+.. |PyPI version shields.io| image:: https://img.shields.io/pypi/v/optibess-algorithm.svg
+   :target: https://pypi.org/project/optibess-algorithm/
 
 Quick start
 ------------

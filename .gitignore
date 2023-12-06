@@ -5,3 +5,4 @@
 /.mypy_cache/
 /optibess_algorithm.egg-info/
 /.tox/
+/dist/
