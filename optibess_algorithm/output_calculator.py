@@ -1,5 +1,4 @@
 import datetime
-import time
 from collections.abc import Iterable
 from enum import Enum, auto
 
@@ -7,8 +6,8 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from .producers import Producer, PvProducer
-from .power_storage import PowerStorage, LithiumPowerStorage
+from .producers import Producer
+from .power_storage import PowerStorage
 from .utils import year_diff, month_diff
 
 
@@ -44,6 +43,7 @@ class OutputCalculator:
                  producer_factor: float = 1):
         """
         initialize the calculator with info on the system
+
         :param num_of_years: number of year to calculate the output for
         :param grid_size: the size of the grid connection (kwh)
         :param producer: the producer for the system
@@ -490,6 +490,7 @@ class OutputCalculator:
     def _get_data(self, year: int):
         """
         create the basic dataframe for the year (indexed by the date, with values of the pv system output)
+
         :param year: the number of year in the simulation (first year is 0)
         """
         # in the first year Copy the power values for the initial source
@@ -536,6 +537,7 @@ class OutputCalculator:
         """
         calculate the degradation of the battery for the given date, given the date of the start of the augmentation
         (using a value between the degradation values in the table, according to the number of months adn days passed)
+
         :param date: the date of the day
         :param aug_initial_date: the date of the start of the augmentation
         """
@@ -699,6 +701,7 @@ class OutputCalculator:
         """
         calculate the battery soc before daily discharge (including power accounting for losses due to discharge), using
         only power from pv
+
         :param year: the number of year in the simulation (first year is 0)
         """
         reductions = np.column_stack((np.maximum(self._indices - 12, 0), self._indices)).ravel()
@@ -735,6 +738,7 @@ class OutputCalculator:
     def _calc_grid_to_bess(self, year: int):
         """
         calculate the power needed from the grid to fill the battery
+
         :param year: the number of year in the simulation (first year is 0)
         """
         # calculate the available bandwidth of the connection to the battery for charge (the connection size minus the
@@ -807,6 +811,7 @@ class OutputCalculator:
     def _calc_power_to_grid(self, year: int):
         """
         calculate the hourly power transmitted to the grid from both pv and bess
+
         :param year: the number of year in the simulation (first year is 0)
         """
         # calculate hourly pv to grid and gri
@@ -859,11 +864,11 @@ class OutputCalculator:
         # reducing self consumption from pv to grid or add to grid to bess in charge and idle hours
         self._idle_hourly_self_cons = self._df["battery_nameplate"] * self._power_storage.idle_self_consumption
         active_hours = (self._df["bess2grid"] > 0) | (self._df["pv2bess"] > 0) | (self._df["grid2bess"] > 0)
-        self._df["grid2bess"] += np.where(((grid_from_pv > self._idle_hourly_self_cons) & (active_hours == False)) |
+        self._df["grid2bess"] += np.where(((grid_from_pv > self._idle_hourly_self_cons) & ~active_hours) |
                                           active_hours,
                                           0,
                                           self._idle_hourly_self_cons)
-        grid_from_pv -= np.where((grid_from_pv > self._idle_hourly_self_cons) & (active_hours == False),
+        grid_from_pv -= np.where((grid_from_pv > self._idle_hourly_self_cons) & ~active_hours,
                                  self._idle_hourly_self_cons,
                                  0)
 
@@ -884,6 +889,7 @@ class OutputCalculator:
     def _calc_soc(self, year, bat_deg_ratio):
         """
         calculate soc of the battery in every hour
+
         :param year: the number of year in the simulation (first year is 0)
         :param bat_deg_ratio: the ratio of the degradation for the battery in this year by to the one for the next year
         """
@@ -954,6 +960,7 @@ class OutputCalculator:
             output - power form pv+bess to grid (after losses),
             battery_nameplate - the nameplate value of the battery,
             acc_losses - the accumulated losses of the system (only when save_all_results is true))
+
         also save hourly output (last entry) to 'output'
         """
         # reset augmentations variables
@@ -988,6 +995,7 @@ class OutputCalculator:
     def monthly_averages(self, years: Iterable[int] = (0,), stat: str = 'output'):
         """
         calculate and print the average in each hour for each month across the given years
+
         :param years: iterable of years to calculate for (refer to years since year one, acceptable values are between
             0, inclusive, and num_of_years, exclusive)
         :param stat: the stat to calculate
@@ -1020,6 +1028,7 @@ class OutputCalculator:
     def plot_stat(self, years: Iterable[int] | None = None, stat: str = "output"):
         """
         plot a graph of the given stat over the years
+
         :param years: iterable of years to calculate for (refer to years since year one, acceptable values are between
             0, inclusive, and num_of_years, exclusive)
         :param stat: the stat to plot
@@ -1044,37 +1053,3 @@ class OutputCalculator:
         all_data = pd.concat(stat_data)
         all_data.plot()
         plt.show()
-
-
-if __name__ == '__main__':
-    year_num = 25
-    connection = 180000
-    storage = LithiumPowerStorage(year_num, connection, aug_table=((0, 846), (72, 1093), (140, 179), (200, 200)))
-
-    # file
-    import os
-    root_folder = os.path.dirname(os.path.abspath(__file__))
-    prod = PvProducer(os.path.join(root_folder, "test.csv"), pv_peak_power=13000)
-
-    # pvgis
-    # prod = PvProducer(latitude=30.60187, longitude=34.97361, tech=Tech.EAST_WEST, pv_peak_power=9821)
-
-    # pvlib
-    # module = MODULE_DEFAULT
-    # inverter = INVERTER_DEFAULT
-    # prod = PvProducer(latitude=30.92196, longitude=34.85602, modules_per_string=10, strings_per_inverter=2,
-    #                   number_of_inverters=2000, module=module, inverter=inverter,
-    #                   tech=Tech.EAST_WEST)
-
-    test = OutputCalculator(year_num, connection, prod, storage, producer_factor=1, save_all_results=True)
-
-    start_time = time.time()
-    test.run()
-    np.set_printoptions(linewidth=1000)
-    print(f"calculation took: {time.time() - start_time} seconds")
-    print(test.monthly_averages(stat="bess_from_pv"))
-    print("-----------------------------------------------------------------------------------")
-    print(test.monthly_averages(stat="bess_from_grid"))
-    print("-----------------------------------------------------------------------------------")
-    print(test.monthly_averages(stat="grid_from_bess"))
-    # print(test.monthly_averages(stat="pv_output"))

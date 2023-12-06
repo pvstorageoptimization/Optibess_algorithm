@@ -1,66 +1,66 @@
-Optibess\_algorithm package
+optibess\_algorithm package
 ===========================
 
-Optibess\_algorithm.constants module
+optibess\_algorithm.constants module
 ------------------------------------
 
-.. automodule:: Optibess_algorithm.constants
+.. automodule:: optibess_algorithm.constants
    :members:
    :undoc-members:
    :show-inheritance:
 
-Optibess\_algorithm.financial\_calculator module
+optibess\_algorithm.financial\_calculator module
 ------------------------------------------------
 
-.. automodule:: Optibess_algorithm.financial_calculator
+.. automodule:: optibess_algorithm.financial_calculator
    :members:
    :undoc-members:
    :show-inheritance:
 
-Optibess\_algorithm.output\_calculator module
+optibess\_algorithm.output\_calculator module
 ---------------------------------------------
 
-.. automodule:: Optibess_algorithm.output_calculator
+.. automodule:: optibess_algorithm.output_calculator
    :members:
    :undoc-members:
    :show-inheritance:
 
-Optibess\_algorithm.power\_storage module
+optibess\_algorithm.power\_storage module
 -----------------------------------------
 
-.. automodule:: Optibess_algorithm.power_storage
+.. automodule:: optibess_algorithm.power_storage
    :members:
    :undoc-members:
    :show-inheritance:
 
-Optibess\_algorithm.power\_system\_optimizer module
+optibess\_algorithm.power\_system\_optimizer module
 ---------------------------------------------------
 
-.. automodule:: Optibess_algorithm.power_system_optimizer
+.. automodule:: optibess_algorithm.power_system_optimizer
    :members:
    :undoc-members:
    :show-inheritance:
 
-Optibess\_algorithm.producers module
+optibess\_algorithm.producers module
 ------------------------------------
 
-.. automodule:: Optibess_algorithm.producers
+.. automodule:: optibess_algorithm.producers
    :members:
    :undoc-members:
    :show-inheritance:
 
-Optibess\_algorithm.pv\_output\_calculator module
+optibess\_algorithm.pv\_output\_calculator module
 -------------------------------------------------
 
-.. automodule:: Optibess_algorithm.pv_output_calculator
+.. automodule:: optibess_algorithm.pv_output_calculator
    :members:
    :undoc-members:
    :show-inheritance:
 
-Optibess\_algorithm.utils module
+optibess\_algorithm.utils module
 --------------------------------
 
-.. automodule:: Optibess_algorithm.utils
+.. automodule:: optibess_algorithm.utils
    :members:
    :undoc-members:
    :show-inheritance:
@@ -68,7 +68,7 @@ Optibess\_algorithm.utils module
 Module contents
 ---------------
 
-.. automodule:: Optibess_algorithm
+.. automodule:: optibess_algorithm
    :members:
    :undoc-members:
    :show-inheritance:

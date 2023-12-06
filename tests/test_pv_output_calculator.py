@@ -43,6 +43,7 @@ class TestPvOutputCalculator(unittest.TestCase):
         patch.stopall()
 
     def test_pvlib_output_fixed(self):
+        # call function
         result = get_pvlib_output(latitude=30, longitude=34, modules_per_string=10, number_of_inverters=100)
         # check data shape
         self.assertEqual(result.shape[0], 8760, "pvlib output is not in the right shape (Should have 8760 rows)")
@@ -79,6 +80,7 @@ class TestPvOutputCalculator(unittest.TestCase):
         self.model_chain.return_value.run_model.assert_called_once()
 
     def test_pvlib_output_tracker(self):
+        # call function
         result = get_pvlib_output(latitude=30, longitude=34, modules_per_string=10, number_of_inverters=100,
                                   tech=Tech.TRACKER)
         # check data shape
@@ -93,6 +95,7 @@ class TestPvOutputCalculator(unittest.TestCase):
         self.model_chain.return_value.run_model.assert_called_once()
 
     def test_pvlib_output_east_west(self):
+        # call function
         result = get_pvlib_output(latitude=30, longitude=34, modules_per_string=10, number_of_inverters=100,
                                   tech=Tech.EAST_WEST)
         # check data shape
@@ -175,13 +178,15 @@ class TestPvOutputCalculator(unittest.TestCase):
         self.assertEqual(str(e.exception), "Number of units should be positive")
 
     def test_pvgis_output_fixed(self):
+        # call function
         result = get_pvgis_hourly(latitude=30, longitude=34)
         # check data shape
         self.assertEqual(result.shape[0], 8760, "pvgis output is not in the right shape (Should have 8760 rows)")
         # check values are in reasonable range
         self.assertTrue(np.all(result.iloc[0] < 225))
 
-    def test_pvgis_output_tracker(self):
+    def test_pvgis_output_tracker(self):# call function
+
         result = get_pvgis_hourly(latitude=30, longitude=34, tech=Tech.TRACKER)
         # check data shape
         self.assertEqual(result.shape[0], 8760, "pvgis output is not in the right shape (Should have 8760 rows)")
@@ -189,6 +194,7 @@ class TestPvOutputCalculator(unittest.TestCase):
         self.assertTrue(np.all(result.iloc[0] < 225))
 
     def test_pvgis_output_east_west(self):
+        # call function
         result = get_pvgis_hourly(latitude=30, longitude=34, tech=Tech.EAST_WEST)
         # check data shape
         self.assertEqual(result.shape[0], 8760, "pvgis output is not in the right shape (Should have 8760 rows)")

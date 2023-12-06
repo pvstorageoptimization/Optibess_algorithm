@@ -70,8 +70,8 @@ Create a power storage with:
 - :code:`use_default_aug` is a boolean idicating using a default augmentation configuration
 
 The size of the system is determined by an augmentation table with the month each augmentation is installed and the 
-number of block in each augmentation. When battery_hours is specified and use_default_aug is true we use 3 
-augmentations. The first augmentation in the 0 month (system initial construction) with size that suffice for supplying 
+number of blocks in each augmentation. When battery_hours is specified and use_default_aug is true we use 3
+augmentations. The first augmentation is in the 0 month (system initial construction) with size that suffice for supplying
 battery_hours times grid_size (with extra for losses), and adding about 20% after 8 and 16 years. If use_default_aug 
 is false only uses te first augmentation.
 
@@ -138,7 +138,7 @@ parameters:
 - :code:`cpi` is the consumer price index
 - :code:`battery_deg_cost` is the annual reduction of battery cost (in percentage)
 - :code:`base_tariff` is the base tariff used to construct the tariff table
-- :code:`low/high_winter/transition/summer_factor` are factor by which the the base tariff is multiplied to create the
+- :code:`low/high_winter/transition/summer_factor` are factors by which the the base tariff is multiplied to create the
   tariff table
 - :code:`buy_from_grid_factor` is a factor by which to multiply a tariff to get the prices of buy power
 - :code:`tariff_table` is an option to specify the tariff table directly

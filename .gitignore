@@ -1,0 +1,7 @@
+/docs/conf.py
+/docs/_templates/
+/docs/_static/
+/docs/_build/
+/.mypy_cache/
+/optibess_algorithm.egg-info/
+/.tox/

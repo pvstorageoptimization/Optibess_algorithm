@@ -1,8 +1,6 @@
 import logging
 import os
-import time
 from abc import ABC, abstractmethod
-import numpy as np
 import nevergrad as ng
 
 from .constants import MAX_BATTERY_HOURS
@@ -20,6 +18,7 @@ class PowerSystemOptimizer(ABC):
                  max_aug_num: int = 6, initial_aug_num: int | None = None, budget: int = 2000):
         """
         initialize the simulation objects for the optimizer
+
         :param financial_calculator: calculator to use for objective function
         :param use_memory: whether to use memory to get score for already calculated values
         :param max_aug_num: the maximum number of augmentations the optimizer will try in a solution
@@ -73,6 +72,7 @@ class PowerSystemOptimizer(ABC):
     def get_aug_table(self, arr) -> tuple[tuple[int, int], ...]:
         """
         create a preliminary augmentation table (As tuple of tuples) for the given collection
+
         :param arr: a collection (array-like, dict, tensor, etc.) containing the months and then the nuber of blocks for
             the augmentation table
         """
@@ -82,6 +82,7 @@ class PowerSystemOptimizer(ABC):
         """
         create a candid for the optimization (a tuple containing: a tuple of tuples for the aug table and another number
         for the percent of producer used)
+
         :param arr - a collection (array-like, dict, tensor, etc.) containing info for a candid
         """
         aug_table = self.get_aug_table(arr)
@@ -92,6 +93,7 @@ class PowerSystemOptimizer(ABC):
         """
         an objective function that returns the irr given an augmentation table (gives negative value for invalid
         augmentation table)
+
         :param arr: a collection (array-like, dict, tensor, etc.) containing info for a candid
         """
         # create candid solution from parameters
@@ -128,6 +130,7 @@ class PowerSystemOptimizer(ABC):
         """
         an objective function that returns minus the irr given an augmentation table (gives negative value for invalid
         augmentation table)
+
         :param arr: a collection (array-like, dict, tensor, etc.) containing the months and then the nuber of blocks for
             the augmentation table
         """
@@ -151,6 +154,7 @@ class PowerSystemOptimizer(ABC):
     def _optimize(self, progress_recorder=None):
         """
         runs the optimization itself (after parameters and constraints are created)
+
         :param progress_recorder: an object that record the progress of the task (should have method set_progress)
         """
         pass
@@ -158,6 +162,7 @@ class PowerSystemOptimizer(ABC):
     def run(self, progress_recorder=None):
         """
         runs optimization
+
         :param progress_recorder: an object that record the progress of the task (should have method set_progress)
         """
         self._set_variables()
@@ -172,6 +177,7 @@ class NevergradOptimizer(PowerSystemOptimizer):
                  max_no_change_steps: int | None = None, min_change_size: float = 0.0001, verbosity: int = 2):
         """
         initialize the simulation objects for the optimizer
+
         :param financial_calculator: calculator to use for objective function
         :param use_memory: whether to use memory to get score for already calculated values
         :param max_aug_num: the maximum number of augmentations the optimizer will try in a solution
@@ -233,8 +239,7 @@ class NevergradOptimizer(PowerSystemOptimizer):
                 return False
             return True
 
-        self._constraints = constraints_gen
-        self._instru.register_cheap_constraint(self._constraints)
+        self._instru.register_cheap_constraint(constraints_gen)
         self._instru.register_cheap_constraint(check_battery_size)
 
     def _create_optimizer(self):
@@ -250,11 +255,14 @@ class NevergradOptimizer(PowerSystemOptimizer):
                                                                     inopts={"integer_variables": range(13)}),
                                       ng.optimizers.Powell], [self._budget // 2, self._budget // 4])(
             parametrization=self._instru, budget=self._budget)
+        # reduce number of tries for finding candidates
+        opt._constraints_manager.max_trials = 10
         return opt
 
     def _register_callbacks(self, opt, progress_recorder=None):
         """
         create callbacks function for the optimizer and register them
+
         :param opt: the optimizer
         :param progress_recorder: an object that record the progress of the task (should have method set_progress)
         """
@@ -290,163 +298,3 @@ class NevergradOptimizer(PowerSystemOptimizer):
         except ng.errors.NevergradEarlyStopping:
             recommendation = opt.provide_recommendation()
         return recommendation.value, recommendation.loss
-
-
-class NevergradDerivativeOptimizer(NevergradOptimizer):
-
-    def _set_variables(self):
-        temp_aug_table = self._output.aug_table.copy()
-        params = [ng.p.Scalar(init=min(i * self._def_aug_diff, self._output.num_of_years - 1), lower=0,
-                              upper=self._month_bound // 12).set_integer_casting()
-                  for i in range(self._max_aug_num)] + \
-                 [ng.p.Scalar(init=temp_aug_table[0, 1] // 2, lower=0, upper=self._first_entry_bound).
-                  set_integer_casting()] + \
-                 [ng.p.Scalar(init=temp_aug_table[1, 1], lower=0, upper=self._first_entry_bound // 2).
-                  set_integer_casting() for _ in range(self._initial_aug_num - 1)] + \
-                 [ng.p.Scalar(init=0, lower=0, upper=self._first_entry_bound // 2).set_integer_casting()
-                  for _ in range(self._max_aug_num - self._initial_aug_num)] + \
-                 [ng.p.Scalar(init=100, lower=1, upper=100).set_integer_casting()]
-        self._instru = ng.p.Tuple(*params)
-
-    def _create_optimizer(self):
-        opt = ng.optimizers.CMAsmall(parametrization=self._instru, budget=self._budget)
-        self._step = 0
-        self._derivatives_calcs = 0
-        self._derivatives = np.zeros(len(self._instru))
-        self._last_parameters = None
-        self._last_result = None
-        return opt
-
-    def _check_param_diff(self, arr, tol):
-        """
-        check if the difference between the given solution and the saved parameters is in the acceptable tolerance
-        :param arr: the given solution
-        :param tol: the tolerance
-        """
-        for i in (list(range(self._max_aug_num)) + ([len(arr) - 1])):
-            # for augmentation years and producer factor check difference of each one
-            if not (self._last_parameters[i] - tol * 10) < arr[i] < (self._last_parameters[i] + tol * 10):
-                return False
-        # check the total blocks in the solution is in the tolerance range compared to the total block in the saved
-        # parameters
-        temp = sum(self._last_parameters[self._max_aug_num: -1])
-        if not temp * (1 - tol) < sum(arr[self._max_aug_num: -1]) < temp * (1 + tol):
-            return False
-        return True
-
-    def maximize_objective(self, arr):
-        """
-        an objective function that returns the irr given an augmentation table (gives negative value for invalid
-        augmentation table)
-        :param arr: a collection (array-like, dict, tensor, etc.) containing info for a candid
-        """
-        candid = self.get_candid(arr)
-        logging.info(candid)
-        aug_table = candid[0]
-        if not self._first_aug_of_size[len(aug_table)]:
-            logging.info('\x1b[6;30;42m' + f'first aug of size {len(aug_table)}' + '\x1b[0m')
-            self._first_aug_of_size[len(aug_table)] = True
-        if self._use_memory and self._step % 100 != 0:
-            if candid in self._memory:
-                self._step += 1
-                self._results.append(self._memory[candid])
-                return self._memory[candid]
-        # if the optimization step is not a multiple of 100, try using derivatives instead of full simulation
-        # if the parameters are not within 10% of the parameters use for derivatives calculation, use the full
-        # simulation to calculate the value
-        if self._step % 100 != 0 and self._check_param_diff(arr, 0.15):
-            self._step += 1
-            self._derivatives_calcs += 1
-            result = self._last_result + np.dot(np.array(arr) - self._last_parameters, self._derivatives)
-            # logging.info(np.array(arr) - self._last_parameters, self._derivatives,
-            #       np.dot(np.array(arr) - self._last_parameters, self._derivatives), result)
-            if self._use_memory:
-                self._results.append(result)
-            return result
-        try:
-            self._output.aug_table = aug_table
-            self._output.producer_factor = candid[-1] / 100
-        except ValueError:
-            self._step += 1
-            result = -100
-        else:
-            self._output.run()
-            self._financial_calculator.output_calculator = self._output
-            result = self._financial_calculator.get_irr()
-            if self._step % 100 == 0:
-                self._last_result = result
-                self._last_parameters = np.array(arr)
-                # calculate derivatives for each parameter
-                for i in range(len(arr)):
-                    temp = np.array(arr)
-                    # change the ith value slightly
-                    if i < self._max_aug_num:
-                        if i < self._output.num_of_years - 1:
-                            temp[i] += 1
-                        else:
-                            temp[i] -= 1
-                    elif i == len(arr) - 1:
-                        if temp[i] == 0:
-                            temp[i] = 5
-                        else:
-                            temp[i] *= 0.95
-                    else:
-                        temp[i] = max(temp[i] * 1.1, temp[i] + 10)
-                    temp_candid = self.get_candid(temp)
-                    # use memory if result is available
-                    if self._use_memory and temp_candid in self._memory:
-                        temp_result = self._memory[temp_candid]
-                    else:
-                        # calculate the irr with the changed parameters
-                        self._output.set_aug_table(temp_candid[0], False)
-                        self._output.producer_factor = temp_candid[-1] / 100
-                        self._output.run()
-                        self._financial_calculator.output_calculator = self._output
-                        temp_result = self._financial_calculator.get_irr()
-                    if self._use_memory:
-                        self._memory[temp_candid] = temp_result
-                    # calculate the directional derivatives of the function
-                    self._derivatives[i] = (temp_result - result) / (temp[i] - arr[i])
-                    if np.isnan(self._derivatives[i]):
-                        self._derivatives[i] = 0
-
-        if self._use_memory:
-            self._results.append(result)
-            self._memory[candid] = result
-        self._step += 1
-        return result
-
-
-def flatten_tuples(t):
-    for x in t:
-        if isinstance(x, tuple):
-            yield from flatten_tuples(x)
-        else:
-            yield x
-
-
-if __name__ == '__main__':
-    # make info logging show
-    logging.getLogger().setLevel(logging.INFO)
-    # setup power system
-    storage = LithiumPowerStorage(25, 5000, use_default_aug=True)
-    producer = PvProducer("../../test docs/Sushevo_Project.CSV", pv_peak_power=150000)
-    output = OutputCalculator(25, 5000, producer, storage, save_all_results=False)
-    test = FinancialCalculator(output, 1000)
-
-    # start optimization
-    start_time = time.time()
-    optimizer = NevergradOptimizer(test, budget=2000, max_no_change_steps=30)
-    opt_output, res = optimizer.run()
-    # print results
-    print(optimizer.get_candid(opt_output), res)
-    print(optimizer._first_aug_of_size)
-    print(f"Optimization took {time.time() - start_time} seconds")
-    # print(f"Used {optimizer._derivatives_calcs} calculations with derivatives")
-    # # write results to file
-    # with open('c:/Users/user/Documents/solar optimization project/poc docs/optimization_results1.csv', 'w', newline='') \
-    #         as csv_file:
-    #     writer = csv.writer(csv_file)
-    #     writer.writerow(["parameters", "result"])
-    #     for k, v in optimizer._memory.items():
-    #         writer.writerow([tuple(flatten_tuples(k)), v])

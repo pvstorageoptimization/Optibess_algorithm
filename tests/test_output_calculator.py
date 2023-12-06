@@ -37,59 +37,82 @@ class TestOutputCalculator(unittest.TestCase):
                                        power_storage=self.power_storage)
 
     def test_creation_regular(self):
+        # create output calculator
         result = OutputCalculator(num_of_years=25, grid_size=5000, producer=self.producer,
                                   power_storage=self.power_storage)
+        # check pcs value
         self.assertAlmostEqual(result.pcs_power, 5532, 0)
 
     def test_creation_incorrect_num_of_years(self):
+        # check for error in creation
         with self.assertRaises(ValueError) as e:
             OutputCalculator(num_of_years=0, grid_size=5000, producer=self.producer, power_storage=self.power_storage)
         self.assertEqual(str(e.exception), "Number of years should be positive")
 
     def test_set_grid_size_pcs_power_changed(self):
+        # change value
         self.output.grid_size = 4000
+        # check pcs value
         self.assertAlmostEqual(self.output.pcs_power, 4441, 0)
 
     def test_grid_size_incorrect_value(self):
+        # check for error in setter
         with self.assertRaises(ValueError) as e:
             self.output.grid_size = -400
         self.assertEqual(str(e.exception), "Grid size should be positive")
 
     def test_producer_incorrect_type(self):
+        # check for error in setter
         with self.assertRaises(ValueError) as e:
             self.output.producer = np.empty(8670)
         self.assertEqual(str(e.exception), "Producer should be an instance of class Producer")
 
     def test_set_power_storage_pcs_power_changed(self):
+        # setup mock
         power_storage = Mock(spec=PowerStorage)
         type(power_storage).num_of_years = 25
         type(power_storage).aug_table = np.array([[0, 70, 7000], [96, 20, 2000], [192, 10, 1000]])
         type(power_storage).rte_table = constants.DEFAULT_RTE_TABLE
         type(power_storage).active_self_consumption = 0.005
+        # changed value
         self.output.power_storage = power_storage
+        # check pcs value
         self.assertAlmostEqual(self.output.pcs_power, 5552, 0)
 
     def test_power_storage_incorrect_type(self):
+        # check for error in setter
         with self.assertRaises(ValueError) as e:
             self.output.power_storage = [0 for _ in range(8760)]
         self.assertEqual(str(e.exception), "Power storage should be an instance of class PowerStorage")
 
     def test_power_storage_too_few_years(self):
+        # setup mock
         power_storage = Mock(spec=PowerStorage)
         type(power_storage).num_of_years = 20
+        # check for error in setter
         with self.assertRaises(ValueError) as e:
             self.output.power_storage = power_storage
         self.assertEqual(str(e.exception), "Power Storage number of years should be at least as many as the system")
 
     def test_set_coupling_values_change(self):
+        # change value
         self.output.coupling = Coupling.DC
+        # check values
         self.assertAlmostEqual(self.output.prod_trans_loss, 0.02485, 4)
         self.assertEqual(self.output.charge_loss, 0.015)
         self.assertAlmostEqual(self.output.grid_bess_loss, 0.03947725, 4)
         self.assertAlmostEqual(self.output.pcs_power, 5559, 0)
 
+    def test_set_coupling_same_value(self):
+        # change value
+        self.output.coupling = Coupling.AC
+        # check no value change
+        self.assertAlmostEqual(self.output.prod_trans_loss, 0.0199, 4)
+
     def test_set_mvpv_loss_values_changed_ac_coupling(self):
+        # change value
         self.output.mvpv_loss = 0.005
+        # check values
         self.assertAlmostEqual(self.output.charge_loss, 0.02972575, 4)
         self.assertAlmostEqual(self.output.prod_trans_loss, 0.01495, 4)
         self.assertAlmostEqual(self.output.pcs_power, 5532, 0)
@@ -98,18 +121,23 @@ class TestOutputCalculator(unittest.TestCase):
         # change to dc coupling
         self.output.coupling = Coupling.DC
 
+        # change loss value
         self.output.mvpv_loss = 0.005
+        # check values
         self.assertEqual(self.output.charge_loss, 0.015)
         self.assertAlmostEqual(self.output.prod_trans_loss, 0.02485, 4)
         self.assertAlmostEqual(self.output.pcs_power, 5559, 0)
 
     def test_charge_loss_incorrect_value(self):
+        # check for error in setter
         with self.assertRaises(ValueError) as e:
             self.output.mvpv_loss = 1.5
         self.assertEqual(str(e.exception), "MV-PV loss should be between 0 and 1 (exclusive)")
 
     def test_set_trans_loss_values_changed_ac_coupling(self):
+        # change value
         self.output.trans_loss = 0.012
+        # check values
         self.assertAlmostEqual(self.output.grid_bess_loss, 0.0365518, 4)
         self.assertAlmostEqual(self.output.prod_trans_loss, 0.02188, 4)
         self.assertAlmostEqual(self.output.pcs_power, 5543, 0)
@@ -117,19 +145,23 @@ class TestOutputCalculator(unittest.TestCase):
     def test_set_trans_loss_values_changed_dc_coupling(self):
         # change to dc coupling
         self.output.coupling = Coupling.DC
-
+        # change loss value
         self.output.trans_loss = 0.012
+        # check values
         self.assertAlmostEqual(self.output.grid_bess_loss, 0.0414177, 4)
         self.assertAlmostEqual(self.output.prod_trans_loss, 0.02682, 4)
         self.assertAlmostEqual(self.output.pcs_power, 5571, 0)
 
     def test_trans_loss_incorrect_value(self):
+        # check for error in setter
         with self.assertRaises(ValueError) as e:
             self.output.trans_loss = 0
         self.assertEqual(str(e.exception), "Trans loss should be between 0 and 1 (exclusive)")
 
     def test_set_mvbat_loss_values_changed_ac_coupling(self):
+        # change value
         self.output.mvbat_loss = 0.013
+        # check values
         self.assertAlmostEqual(self.output.grid_bess_loss, 0.03752695, 4)
         self.assertAlmostEqual(self.output.charge_loss, 0.03752695, 4)
         self.assertAlmostEqual(self.output.pcs_power, 5548, 0)
@@ -137,19 +169,23 @@ class TestOutputCalculator(unittest.TestCase):
     def test_set_mvbat_loss_values_changed_dc_coupling(self):
         # change to dc coupling
         self.output.coupling = Coupling.DC
-
+        # change loss value
         self.output.mvbat_loss = 0.013
+        # check values
         self.assertAlmostEqual(self.output.grid_bess_loss, 0.03947725, 4)
         self.assertEqual(self.output.charge_loss, 0.015)
         self.assertAlmostEqual(self.output.pcs_power, 5559, 0)
 
     def test_mvbat_loss_incorrect_value(self):
+        # check for error in setter
         with self.assertRaises(ValueError) as e:
             self.output.mvbat_loss = 0
         self.assertEqual(str(e.exception), "MV-BAT loss should be between 0 and 1 (exclusive)")
 
     def test_set_pcs_loss_values_changed_ac_coupling(self):
+        # change value
         self.output.pcs_loss = 0.011
+        # check values
         self.assertAlmostEqual(self.output.prod_trans_loss, 0.0199, 4)
         self.assertAlmostEqual(self.output.grid_bess_loss, 0.0306811, 4)
         self.assertAlmostEqual(self.output.charge_loss, 0.0306811, 4)
@@ -158,20 +194,24 @@ class TestOutputCalculator(unittest.TestCase):
     def test_set_pcs_loss_values_changed_dc_coupling(self):
         # change to dc coupling
         self.output.coupling = Coupling.DC
-
+        # change loss value
         self.output.pcs_loss = 0.011
+        # check values
         self.assertAlmostEqual(self.output.prod_trans_loss, 0.02089, 4)
         self.assertAlmostEqual(self.output.grid_bess_loss, 0.03557665, 4)
         self.assertEqual(self.output.charge_loss, 0.015)
         self.assertAlmostEqual(self.output.pcs_power, 5537, 0)
 
     def test_pcs_loss_incorrect_value(self):
+        # check for error in setter
         with self.assertRaises(ValueError) as e:
             self.output.pcs_loss = 0
         self.assertEqual(str(e.exception), "PCS loss should be between 0 and 1 (exclusive)")
 
     def test_set_dc_dc_loss_values_changed_ac_coupling(self):
+        # change value
         self.output.dc_dc_loss = 0.01
+        # check values
         self.assertAlmostEqual(self.output.grid_bess_loss, 0.0346015, 4)
         self.assertAlmostEqual(self.output.charge_loss, 0.0346015, 4)
         self.assertAlmostEqual(self.output.pcs_power, 5532, 0)
@@ -179,13 +219,15 @@ class TestOutputCalculator(unittest.TestCase):
     def test_set_dc_dc_loss_values_changed_dc_coupling(self):
         # change to dc coupling
         self.output.coupling = Coupling.DC
-
+        # change loss value
         self.output.dc_dc_loss = 0.01
+        # check values
         self.assertAlmostEqual(self.output.grid_bess_loss, 0.0346015, 4)
         self.assertEqual(self.output.charge_loss, 0.01)
         self.assertAlmostEqual(self.output.pcs_power, 5532, 0)
 
     def test_dc_dc_loss_incorrect_value(self):
+        # check for error in setter
         with self.assertRaises(ValueError) as e:
             self.output.dc_dc_loss = 1.1
         self.assertEqual(str(e.exception), "DC-DC loss should be between 0 and 1 (exclusive)")
@@ -196,24 +238,30 @@ class TestOutputCalculator(unittest.TestCase):
             type(self.power_storage).aug_table = x
 
         type(self.power_storage).set_aug_table = Mock(side_effect=mock_set_aug_table)
+        # change value
         self.output.aug_table = np.array([[0, 70, 7000], [96, 20, 1000], [192, 10, 1000]])
+        # check pcs value
         self.assertAlmostEqual(self.output.pcs_power, 5524, 0)
 
     def test_discharge_hour_incorrect_value(self):
+        # check for error in setter
         with self.assertRaises(ValueError) as e:
             self.output.bess_discharge_start_hour = 25
         self.assertEqual(str(e.exception), "Battery discharge start hour should be between 0 and 23 (inclusive)")
 
     def test_producer_factor_incorrect_value(self):
+        # check for error in setter
         with self.assertRaises(ValueError) as e:
             self.output.producer_factor = 0
         self.assertEqual(str(e.exception), "Producer factor should be between 0 (Exclusive) and 1 (inclusive)")
 
     def test_get_data_shape(self):
+        # check first year values
         self.output._get_data(0)
         self.assertEqual(self.output._df["pv_output"].shape[0], 8760)
         nptesting.assert_array_equal(self.output._df.index, pd.date_range(start='2023-1-1 00:00',
                                                                           end='2023-12-31 23:00', freq='h'))
+        # check second year values
         self.output._get_data(1)
         self.assertEqual(self.output._df["pv_output"].shape[0], 8784)
         nptesting.assert_array_equal(self.output._df.index, pd.date_range(start='2024-1-1 00:00',
@@ -233,11 +281,15 @@ class TestOutputCalculator(unittest.TestCase):
                                             ["overflow"], 0)
 
     def test_get_day_deg_regular(self):
+        # call function
         result = self.output._get_day_deg(pd.Timestamp("2024-1-15"), pd.Timestamp("2023-1-1"))
+        # check output
         self.assertAlmostEqual(result, 0.92336438356, 4)
 
     def test_det_day_deg_earlier_month(self):
+        # call function
         result = self.output._get_day_deg(pd.Timestamp("2027-2-1"), pd.Timestamp("2025-5-1"))
+        # check output
         self.assertAlmostEqual(result, 0.90415, 4)
 
     def additional_setup(self):
@@ -499,6 +551,9 @@ class TestOutputCalculator(unittest.TestCase):
                                                 "soc"].to_numpy(), 0)
 
     def additional_setup_run(self):
+        """
+        additional setup for testing run
+        """
         type(self.power_storage).aug_table = np.array([[0, 30, 3000], [96, 10, 1000]])
         self.output.grid_size = 1000
         self.output._pcs_power = 1140
@@ -619,6 +674,7 @@ class TestOutputCalculator(unittest.TestCase):
                                            " used save_all_result=False)")
 
     def test_monthly_averages_no_output(self):
+        # check for error when function called
         with self.assertRaises(ValueError) as e:
             self.output.monthly_averages()
         self.assertEqual(str(e.exception), "The calculator results are not available (use run to generate output)")

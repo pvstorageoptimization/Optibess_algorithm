@@ -5,6 +5,22 @@ Optibess Algorithm - optimizing PV system combined with storage
 It uses data from *pvgis* and algorithms from the *pvlib* and *Nevergrad* python libraries, and is the backend part of
 the *Optibess* site.
 
+.. image:: https://github.com/pvstorageoptimization/Optibess_algorithm/workflows/Tests/badge.svg
+   :target: https://github.com/pvstorageoptimization/Optibess_algorithm/actions?query=workflow%3ATests
+
+.. image:: https://codecov.io/gh/pvstorageoptimization/Optibess_algorithm/graph/badge.svg?token=L3VLK1Y1SM
+    :target: https://codecov.io/gh/pvstorageoptimization/Optibess_algorithm
+
+|Documentation Status|
+
+.. |Documentation Status| image:: https://readthedocs.org/projects//badge/?version=latest
+   :target: http://.readthedocs.io/?badge=latest
+
+|PyPI download total|
+
+.. |PyPI download total| image:: https://img.shields.io/pypi/dt/.svg
+   :target: https://pypi.python.org/pypi/
+
 Quick start
 ------------
 **Optibess Algorithm** can be installed with:
@@ -34,11 +50,11 @@ You can run an optimization on an example system with:
 documentation
 =============
 
-Check out our documentation<ADD link>. There are example of how to use the different modules for simulation and
+Check out our `documentation <ADD link>`_. There are example of how to use the different modules for simulation and
 optimization
 
 License
 =======
 
-ADD LINK
+Optibess Algorithm is licensed under the `MIT license <LICENSE>`_
 

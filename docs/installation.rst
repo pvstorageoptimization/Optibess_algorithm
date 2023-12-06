@@ -11,6 +11,6 @@ You can also install the :code:`main` branch instead of the latest release with:
 
 .. code-block:: bash
 
-    pip install git+https://github.com/pvstorageoptimization/Optibess_algorithm@main
+    pip install git+https://github.com/pvstorageoptimization/Optibess_algorithm@master
 
 Alternatively, you can clone the repository and run :code:`pip install -e .` from inside the repository folder.

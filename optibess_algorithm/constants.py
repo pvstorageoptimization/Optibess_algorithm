@@ -1,6 +1,5 @@
 import os
 from collections import namedtuple
-import numpy as np
 
 # degradation of battery for each year
 DEFAULT_DEG_TABLE = (1.0, 0.9244, 0.8974, 0.8771, 0.8602, 0.8446, 0.8321, 0.8191, 0.8059, 0.7928, 0.7796, 0.7664,
@@ -16,8 +15,6 @@ DEFAULT_RTE_TABLE = (0.95, 0.95, 0.948, 0.948, 0.948, 0.945, 0.945, 0.945, 0.945
                      0.933, 0.933, 0.933)
 
 root_folder = os.path.dirname(os.path.abspath(__file__))
-
-EXAMPLE_TARIFFS = np.loadtxt(os.path.join(root_folder, "example_tariffs.csv"), delimiter=",", dtype=float)
 
 # data structure for defualts
 RangedValue = namedtuple('RangedValue', 'min max default')
