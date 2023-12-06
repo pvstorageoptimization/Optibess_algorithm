@@ -152,7 +152,7 @@ def get_pvgis_hourly(latitude: float, longitude: float, tilt: float = constants.
     else:
         raw_data = pvlib.iotools.get_pvgis_hourly(latitude, longitude, pvcalculation=True,
                                                   surface_tilt=0 if tech == Tech.TRACKER else tilt,
-                                                  surface_azimuth=azimuth, peakpower=pv_peak, outputformat='csv',
+                                                  surface_azimuth=azimuth + 180, peakpower=pv_peak, outputformat='csv',
                                                   trackingtype=1 if tech == Tech.TRACKER else 0, loss=losses,
                                                   url=PVGIS_URL)[0]
     # convert data from W to kW
@@ -163,43 +163,3 @@ def get_pvgis_hourly(latitude: float, longitude: float, tilt: float = constants.
     filtered_data = [raw_data[(raw_data.index.month == i + 1) & (raw_data.index.year == year)] for i, year in
                      enumerate(years)]
     return pd.concat(filtered_data)
-
-
-if __name__ == '__main__':
-    # start_time = time.time()
-    # raw_data1 = get_pvgis_hourly(30, 34, pv_peak=10000)
-    # print(raw_data1[raw_data1.index.month == 5])
-    raw_data1 = get_pvlib_output(latitude=31, longitude=35, number_of_inverters=1000, modules_per_string=29,
-                                 strings_per_inverter=20, use_bifacial=True,
-                                 module=pd.Series({
-                                     "Adjust": 16.05712,
-                                     "BIPV": 0,
-                                     "Bifacial": 1,
-                                     "I_L_ref": 5.175703,
-                                     "I_mp_ref": 16.87,
-                                     "I_o_ref": 1.15e-09,
-                                     "I_sc_ref": 17.68,
-                                     "PTC": 640.0,
-                                     "R_s": 0.316688,
-                                     "R_sh_ref": 287.1022,
-                                     "STC": 720.0,
-                                     "T_NOCT": 44.0,
-                                     "Technology": 2,
-                                     "V_mp_ref": 42.68,
-                                     "V_oc_ref": 50.74,
-                                     "a_ref": 1.981696,
-                                     "alpha_sc": 0.0004,
-                                     "area": 3.1,
-                                     "beta_oc": -0.0024,
-                                     "cell_number": 132,
-                                     "gamma_ref": -0.5072,
-                                     "id": 1,
-                                     "length": 2.384,
-                                     "manufacturer": "Huasun",
-                                     "name": "Huasun 720",
-                                     "owner_id": None,
-                                     "width": 1.303
-                                 }))
-    raw_data2 = get_pvlib_output(latitude=31, longitude=35, number_of_inverters=1000, modules_per_string=29,
-                                 strings_per_inverter=20)
-    print(sum(raw_data1) / 417600, sum(raw_data2) / 417600)

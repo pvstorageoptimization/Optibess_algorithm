@@ -1054,37 +1054,3 @@ class OutputCalculator:
         all_data = pd.concat(stat_data)
         all_data.plot()
         plt.show()
-
-
-if __name__ == '__main__':
-    year_num = 25
-    connection = 180000
-    storage = LithiumPowerStorage(year_num, connection, aug_table=((0, 846), (72, 1093), (140, 179), (200, 200)))
-
-    # file
-    import os
-    root_folder = os.path.dirname(os.path.abspath(__file__))
-    prod = PvProducer(os.path.join(root_folder, "test.csv"), pv_peak_power=13000)
-
-    # pvgis
-    # prod = PvProducer(latitude=30.60187, longitude=34.97361, tech=Tech.EAST_WEST, pv_peak_power=9821)
-
-    # pvlib
-    # module = MODULE_DEFAULT
-    # inverter = INVERTER_DEFAULT
-    # prod = PvProducer(latitude=30.92196, longitude=34.85602, modules_per_string=10, strings_per_inverter=2,
-    #                   number_of_inverters=2000, module=module, inverter=inverter,
-    #                   tech=Tech.EAST_WEST)
-
-    test = OutputCalculator(year_num, connection, prod, storage, producer_factor=1, save_all_results=True)
-
-    start_time = time.time()
-    test.run()
-    np.set_printoptions(linewidth=1000)
-    print(f"calculation took: {time.time() - start_time} seconds")
-    print(test.monthly_averages(stat="bess_from_pv"))
-    print("-----------------------------------------------------------------------------------")
-    print(test.monthly_averages(stat="bess_from_grid"))
-    print("-----------------------------------------------------------------------------------")
-    print(test.monthly_averages(stat="grid_from_bess"))
-    # print(test.monthly_averages(stat="pv_output"))

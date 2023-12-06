@@ -39,11 +39,11 @@ You can run an optimization on an example system with:
 documentation
 =============
 
-Check out our documentation<ADD link>. There are example of how to use the different modules for simulation and
+Check out our `documentation <ADD link>`_. There are example of how to use the different modules for simulation and
 optimization
 
 License
 =======
 
-ADD LINK
+`MIT <https://github.com/pvstorageoptimization/Optibess_algorithm/LICENSE>`_
 

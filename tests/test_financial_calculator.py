@@ -427,6 +427,10 @@ class TestFinancialCalculator(unittest.TestCase):
         finance = FinancialCalculator(self.output)
         finance._total_producer_capex = 4200000
         finance._total_producer_opex = 42000
+        finance._land_capex = 1000000
+        finance._land_opex = 1000
+        finance._fixed_capex = 1000000
+        finance._fixed_opex = 1000
         finance._cpi = 0.025
         # check outputs
         result = finance.get_producer_expenses()

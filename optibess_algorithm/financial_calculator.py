@@ -655,9 +655,9 @@ class FinancialCalculator:
             yearly_expenses = 0
             # calculate first year capex
             if year == 0:
-                yearly_expenses = self._total_producer_capex
+                yearly_expenses = self._total_producer_capex + self._land_capex + self._fixed_capex
             # calculate opex
-            yearly_expenses += self._total_producer_opex
+            yearly_expenses += self._total_producer_opex + self._land_opex + self._fixed_opex
 
             # multiple expenses by cpi multiplier
             expenses.append(yearly_expenses * cpi_multi)
@@ -828,35 +828,3 @@ class FinancialCalculator:
         _, _, revenues = self.get_cash_flow(power_output, purchased_from_grid)
         plt.plot(revenues)
         plt.show()
-
-
-if __name__ == '__main__':
-    # ((0, 1660), (84, 1001), (120, 949), (168, 377), (216, 232), (252, 119))
-    storage = LithiumPowerStorage(25, 100000, aug_table=((288, 1),))
-    producer = PvProducer("../../../test docs/Sushevo_Project.CSV", pv_peak_power=150000)
-
-    # pvgis
-    # producer = PvProducer(latitude=30.60187, longitude=34.97361, tech=Tech.EAST_WEST, pv_peak_power=9821)
-
-    # pvlib
-    # module = MODULE_DEFAULT
-    # inverter = INVERTER_DEFAULT
-    # producer = PvProducer(latitude=31.10062, longitude=34.83988, modules_per_string=28, strings_per_inverter=22,
-    #                       number_of_inverters=850, module=module, inverter=inverter,
-    #                       tech=Tech.FIXED)
-
-    output = OutputCalculator(25, 100000, producer, storage, save_all_results=True, fill_battery_from_grid=False,
-                              bess_discharge_start_hour=17, producer_factor=1)
-    test = FinancialCalculator(output, 1000, capex_per_land_unit=215000, capex_per_kwp=370, opex_per_kwp=5,
-                               battery_capex_per_kwh=170, battery_opex_per_kwh=5, battery_connection_capex_per_kw=50,
-                               battery_connection_opex_per_kw=0.5, fixed_capex=15000000, fixed_opex=1000000,
-                               interest_rate=0.04, cpi=0.02)
-    start_time = time.time()
-    print("irr: ", test.get_irr())
-    print("npv: ", test.get_npv(5))
-    print("lcoe: ", test.get_lcoe())
-    print("lcos: ", test.get_lcos())
-    print("total bess to grid: ", sum([output.results[i]['grid_from_bess'].sum() for i in range(len(output.results))]))
-    print("total pv output: ", output.results[1]['pv_output'].sum() * 25)
-    print("lcoe no grid power:", test.get_lcoe_no_power_costs())
-    print(f"calculation took: {(time.time() - start_time)} seconds")
