@@ -7,8 +7,19 @@ the *Optibess* site.
 
 .. image:: https://github.com/pvstorageoptimization/Optibess_algorithm/workflows/Tests/badge.svg
    :target: https://github.com/pvstorageoptimization/Optibess_algorithm/actions?query=workflow%3ATests
+
 .. image:: https://codecov.io/gh/pvstorageoptimization/Optibess_algorithm/graph/badge.svg?token=L3VLK1Y1SM
     :target: https://codecov.io/gh/pvstorageoptimization/Optibess_algorithm
+
+|Documentation Status|
+
+.. |Documentation Status| image:: https://readthedocs.org/projects/ansicolortags/badge/?version=latest
+   :target: http://ansicolortags.readthedocs.io/?badge=latest
+
+|PyPI download total|
+
+.. |PyPI download total| image:: https://img.shields.io/pypi/dt/ansicolortags.svg
+   :target: https://pypi.python.org/pypi/ansicolortags/
 
 Quick start
 ------------
