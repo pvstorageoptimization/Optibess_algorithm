@@ -16,9 +16,9 @@ the *Optibess* site.
 .. |Documentation Status| image:: https://readthedocs.org/projects/optibess-algorithm/badge/?version=latest
    :target: http://optibess-algorithm.readthedocs.io/?badge=latest
 
-|PyPI download total|
+|PyPI version shields.io|
 
-.. |PyPI download total| image:: https://img.shields.io/pypi/dt/optibess-algorithm.svg
+.. |PyPI version shields.io| image:: https://img.shields.io/pypi/v/optibess-algorithm.svg
    :target: https://pypi.org/project/optibess-algorithm/
 
 Quick start
