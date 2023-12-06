@@ -13,8 +13,8 @@ the *Optibess* site.
 
 |Documentation Status|
 
-.. |Documentation Status| image:: https://readthedocs.org/projects//badge/?version=latest
-   :target: http://.readthedocs.io/?badge=latest
+.. |Documentation Status| image:: https://readthedocs.org/projects/optibess-algorithm/badge/?version=stable
+   :target: http://optibess-algorithm.readthedocs.io/?badge=stable
 
 |PyPI download total|
 
@@ -50,7 +50,7 @@ You can run an optimization on an example system with:
 documentation
 =============
 
-Check out our `documentation <ADD link>`_. There are example of how to use the different modules for simulation and
+Check out our `documentation <http://optibess-algorithm.readthedocs.io>`_. There are example of how to use the different modules for simulation and
 optimization
 
 License
