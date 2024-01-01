@@ -253,7 +253,7 @@ class TestOutputCalculator(unittest.TestCase):
         # check for error in setter
         with self.assertRaises(ValueError) as e:
             self.output.producer_factor = 0
-        self.assertEqual(str(e.exception), "Producer factor should be between 0 (Exclusive) and 1 (inclusive)")
+        self.assertEqual(str(e.exception), "Producer factor should be between 0 (Exclusive) and 2 (inclusive)")
 
     def test_get_data_shape(self):
         # check first year values
