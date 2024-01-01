@@ -222,7 +222,7 @@ class NevergradOptimizer(PowerSystemOptimizer):
                   set_integer_casting() for _ in range(self._initial_aug_num - 1)] + \
                  [ng.p.Scalar(init=0, lower=0, upper=self._first_entry_bound // 2).set_integer_casting()
                   for _ in range(self._max_aug_num - self._initial_aug_num)] + \
-                 [ng.p.Scalar(init=100, lower=1, upper=100).set_integer_casting()]
+                 [ng.p.Scalar(init=100, lower=1, upper=200).set_integer_casting()]
         self._instru = ng.p.Tuple(*params)
 
     def _set_constraints(self):

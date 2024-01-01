@@ -160,9 +160,10 @@ class PvProducer(Producer):
                                                                    self._losses))
             tf = TimezoneFinder()
             self._time_zone = tf.timezone_at(lng=self._longitude, lat=self._latitude)
+        # take first 365 to deal with leap years
         year_one = datetime.datetime.today().year
         times = pd.date_range(start=f'{year_one}-01-01 00:00', end=f'{year_one}-12-31 23:00', freq='h',
-                              tz=self._time_zone)
+                              tz=self._time_zone)[:8760]
         self._power_output.index = times
         self._power_output.columns = ['pv_output']
 

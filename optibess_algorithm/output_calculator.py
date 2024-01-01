@@ -469,8 +469,8 @@ class OutputCalculator:
 
     @producer_factor.setter
     def producer_factor(self, value):
-        if not 0 < value <= 1:
-            raise ValueError("Producer factor should be between 0 (Exclusive) and 1 (inclusive)")
+        if not 0 < value <= 2:
+            raise ValueError("Producer factor should be between 0 (Exclusive) and 2 (inclusive)")
         self._producer_factor = value
 
     @property
