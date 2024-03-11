@@ -769,7 +769,7 @@ class FinancialCalculator:
 
         lcoe = sum([(costs[i] + power_costs[i]) / (1 + self._interest_rate) ** i for i in range(self._num_of_years)]) /\
             sum([power_output[i].sum() / (1 + self._interest_rate) ** i for i in range(self._num_of_years)])
-        return lcoe
+        return lcoe if np.isfinite(lcoe) else 0
 
     def get_lcoe_no_power_costs(self, power_output=None):
         """
@@ -794,7 +794,7 @@ class FinancialCalculator:
 
         lcoe = sum([costs[i] / (1 + self._interest_rate) ** i for i in range(self._num_of_years)]) / \
             sum([power_output[i].sum() / (1 + self._interest_rate) ** i for i in range(self._num_of_years)])
-        return lcoe
+        return lcoe if np.isfinite(lcoe) else 0
 
     def get_lcos(self):
         """
