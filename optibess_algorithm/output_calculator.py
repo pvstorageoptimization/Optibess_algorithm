@@ -1153,7 +1153,7 @@ class NNOutputCalculator(OutputCalculator):
 
     @sell_prices.setter
     def sell_prices(self, value: np.ndarray[Any, np.dtype[np.float64]]):
-        if isinstance(value, np.ndarray) and is_real_numbers(value):
+        if value is not None and isinstance(value, np.ndarray) and is_real_numbers(value):
             if value.shape != (YEAR_HOURS,) and value.shape != (self._project_hour_num,):
                 raise ValueError(f"Prices shape should be ({YEAR_HOURS},) or ({self._project_hour_num}, ), prices"
                                  f" for each hour in a year or for each hour of every year")
@@ -1173,7 +1173,7 @@ class NNOutputCalculator(OutputCalculator):
 
     @buy_prices.setter
     def buy_prices(self, value: np.ndarray[Any, np.dtype[np.float64]]):
-        if isinstance(value, np.ndarray) and is_real_numbers(value):
+        if value is not None and isinstance(value, np.ndarray) and is_real_numbers(value):
             if value.shape != (YEAR_HOURS,) and value.shape != (self._project_hour_num, ):
                 raise ValueError(f"Prices shape should be ({YEAR_HOURS},) or ({self._project_hour_num}, ), prices"
                                  f" for each hour in a year or for each hour of every year")

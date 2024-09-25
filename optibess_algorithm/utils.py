@@ -206,7 +206,7 @@ def build_tariff_table(winter_low: float, winter_high_week: float, winter_high_w
     return tariff_table
 
 
-def tariff_table_to_hourly(tariff_table: np.ndarray[float], year: int):
+def tariff_table_to_hourly(tariff_table: np.ndarray[Any, np.dtype[np.float64]], year: int):
     """
     Create hourly prices for tariff table in the given year
 
