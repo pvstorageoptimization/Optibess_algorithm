@@ -22,6 +22,7 @@ class TestFinancialCalculator(unittest.TestCase):
                                                    pd.date_range(start='2023-1-1 00:00',
                                                                  end='2023-12-31 23:00', freq='h'), ['pv_output'])
         type(producer)._producer_factor = 1
+        type(producer).start_year = 2023
         # create mock power storage
         power_storage = Mock(spec=PowerStorage)
         type(power_storage).num_of_years = 25
@@ -61,7 +62,8 @@ class TestFinancialCalculator(unittest.TestCase):
         result = FinancialCalculator(output_calculator=self.output, land_size=100, capex_per_land_unit=100,
                                      opex_per_land_unit=1, capex_per_kwp=100, opex_per_kwp=1, battery_capex_per_kwh=100,
                                      battery_opex_per_kwh=1, battery_connection_capex_per_kw=100,
-                                     battery_connection_opex_per_kw=1, usd_to_ils=3.5, tariff_table=np.ones((12, 24)))
+                                     battery_connection_opex_per_kw=1, usd_to_ils=3.5,
+                                     tariff_table=np.ones((7, 12, 24)))
         # check outputs
         nptesting.assert_array_equal(result.tariff_table, np.ones((7, 12, 24)))
 
@@ -146,8 +148,8 @@ class TestFinancialCalculator(unittest.TestCase):
     def test_creation_incorrect_tariff_table(self):
         # check for error in creation
         with self.assertRaises(ValueError) as e:
-            FinancialCalculator(output_calculator=self.output, tariff_table=np.ones((15, 24)))
-        self.assertEqual(str(e.exception), "Tariff table should be of shape (12, 24)")
+            FinancialCalculator(output_calculator=self.output, tariff_table=np.ones((7, 15, 24)))
+        self.assertEqual(str(e.exception), "Tariff table should be of shape (7, 12, 24)")
 
     def test_set_fixed_capex_incorrect_value(self):
         # create financial calculator
@@ -213,18 +215,14 @@ class TestFinancialCalculator(unittest.TestCase):
                           delimiter=",")
         nptesting.assert_array_almost_equal(result._tariff_table, data.reshape((7, 12, 24)), 2)
 
-    def test_get_hourly_tariff_values(self):
-        # create financial calculator
-        finance = FinancialCalculator(output_calculator=self.output)
-        # call function
-        result = finance.get_hourly_tariff(2023)
-        # check output
-        nptesting.assert_allclose(result, np.loadtxt(os.path.join(test_folder,
-                                                                  "financial_calculator/hourly_tariff_output.csv")),
-                                  atol=0.01)
+    def addition_setup_long_prices(self):
+        type(self.output).num_of_years = 10
+        type(self.output).project_hour_num = 87672
+        type(self.output).yearly_hour_num = [8760, 8784, 8760, 8760, 8760, 8784, 8760, 8760, 8760, 8784]
 
     @patch.object(pd, 'date_range', side_effect=pd.date_range)
     def test_get_hourly_tariff_call_again(self, mock_date_range):
+        self.addition_setup_long_prices()
         # create financial calculator
         finance = FinancialCalculator(output_calculator=self.output)
         # call function twice
@@ -233,6 +231,47 @@ class TestFinancialCalculator(unittest.TestCase):
 
         # check only created once
         mock_date_range.assert_called_once()
+
+    def test_get_hourly_tariff_values(self):
+        self.addition_setup_long_prices()
+        # create financial calculator
+        finance = FinancialCalculator(output_calculator=self.output)
+        # call function
+        result = finance.get_hourly_tariff(2023)
+        # check output
+        nptesting.assert_allclose(result[0], np.loadtxt(os.path.join(test_folder,
+                                                                     "financial_calculator/hourly_tariff_output.csv")),
+                                  atol=0.01)
+
+    def test_get_hourly_tariff_short_prices_not_leap(self):
+        self.addition_setup_long_prices()
+        finance = FinancialCalculator(output_calculator=self.output, hourly_sell_prices=np.ones((8760,)))
+        # call function and check result
+        result = finance.get_hourly_tariff(2023)
+        nptesting.assert_array_equal(result[0], np.ones((8760,)))
+
+    def test_get_hourly_tariff_short_prices_leap(self):
+        self.addition_setup_long_prices()
+        finance = FinancialCalculator(output_calculator=self.output, hourly_sell_prices=np.ones((8760,)))
+        # call function and check result
+        result = finance.get_hourly_tariff(2024)
+        nptesting.assert_array_equal(result[0], np.ones((8784,)))
+
+    def test_get_hourly_prices_tariff_long_prices_first_year(self):
+        self.addition_setup_long_prices()
+        prices = np.concatenate([(i + 1) * np.ones((x,)) for i, x in enumerate(self.output.yearly_hour_num)])
+        finance = FinancialCalculator(output_calculator=self.output, hourly_sell_prices=prices)
+        # call function and check result
+        result = finance.get_hourly_tariff(2023)
+        nptesting.assert_array_equal(result[0], np.ones((8760,)))
+
+    def test_get_hourly_prices_tariff_long_prices_third_year(self):
+        self.addition_setup_long_prices()
+        prices = np.concatenate([(i + 1) * np.ones((x,)) for i, x in enumerate(self.output.yearly_hour_num)])
+        finance = FinancialCalculator(output_calculator=self.output, hourly_sell_prices=prices)
+        # call function and check result
+        result = finance.get_hourly_tariff(2025)
+        nptesting.assert_array_equal(result[0], 3 * np.ones((8760,)))
 
     def addition_setup_power_sales(self):
         """
@@ -246,9 +285,8 @@ class TestFinancialCalculator(unittest.TestCase):
                                                             end='2023-12-31 23:00', freq='h'))
                         ]
         finance = FinancialCalculator(output_calculator=self.output, cpi=0.025)
-        finance.get_hourly_tariff = Mock(return_value=np.loadtxt(os.path.join(test_folder,
-                                                                              "financial_calculator/"
-                                                                              "hourly_tariff_output.csv")))
+        hourly_tariff = np.loadtxt(os.path.join(test_folder, "financial_calculator/hourly_tariff_output.csv"))
+        finance.get_hourly_tariff = Mock(return_value=(hourly_tariff, hourly_tariff))
         return finance, power_output
 
     def test_get_power_sales_no_purchase(self):

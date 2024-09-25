@@ -1,6 +1,11 @@
 import os
 from collections import namedtuple
 
+YEAR_DAYS = 365
+YEAR_HOURS = 8760
+DAY_LENGTH = 24
+MAX_HIGH_HOURS = 8
+
 # degradation of battery for each year
 DEFAULT_DEG_TABLE = (1.0, 0.9244, 0.8974, 0.8771, 0.8602, 0.8446, 0.8321, 0.8191, 0.8059, 0.7928, 0.7796, 0.7664,
                      0.7533, 0.7402, 0.7271, 0.7141, 0.7010, 0.6879, 0.6748, 0.6618, 0.6487, 0.6356, 0.6225, 0.6094,

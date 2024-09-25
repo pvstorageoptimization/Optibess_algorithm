@@ -125,7 +125,7 @@ class TestProducer(unittest.TestCase):
         with self.assertRaises(ValueError) as e:
             PvProducer(pv_output_file=os.path.join(test_folder, "test_tranc.csv"), pv_peak_power=10000)
         self.assertEqual(str(e.exception), "Number of lines in file should be dividable by number of hours in a year "
-                                           "(8670)")
+                                           "(8760)")
 
     def test_creation_non_numeric_file(self):
         # check for error in creation

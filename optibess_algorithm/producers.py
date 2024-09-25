@@ -44,6 +44,14 @@ class Producer(ABC):
         """
         pass
 
+    @property
+    @abstractmethod
+    def start_year(self):
+        """
+        the year the producer starts to generate
+        """
+        pass
+
 
 class PvProducer(Producer):
     """
@@ -67,7 +75,8 @@ class PvProducer(Producer):
                  losses: float = constants.DEFAULT_LOSSES,
                  pv_peak_power: float | None = None,
                  tech: Tech = Tech.FIXED,
-                 annual_deg: float = 0.0035
+                 annual_deg: float = 0.0035,
+                 start_year: int = None,
                  ):
         """
         Initialize the PV producer and calculate the power output
@@ -93,6 +102,7 @@ class PvProducer(Producer):
         :param tech: the technology the pv system work works with (fixed, tracker or east-west) (ignored if file is
             supplied)
         :param annual_deg: factor for the annual degradation of the system
+        :param start_year: the year the producer started to generate power (full year number)
         """
         self._pv_output_file = pv_output_file
         self._time_zone = time_zone
@@ -110,6 +120,7 @@ class PvProducer(Producer):
         self._set_losses(losses)
         self._tech = tech
         self.annual_deg = annual_deg
+        self._set_start_year(start_year)
         # check all parameters are present for the select pv output choice
         self._check_params_provided()
         self._set_pv_peak_power(pv_peak_power)
@@ -142,8 +153,9 @@ class PvProducer(Producer):
                 raise ValueError("PV file should be of type csv")
             # check data is numeric
             self._power_output = pd.DataFrame(pd.read_csv(self._pv_output_file, index_col=0).iloc[:, 0].astype(float))
-            if self._power_output.shape[0] != 8760:
-                raise ValueError("Number of lines in file should be dividable by number of hours in a year (8670)")
+            if self._power_output.shape[0] != constants.YEAR_HOURS:
+                raise ValueError(f"Number of lines in file should be dividable by number of hours in a year "
+                                 f"({constants.YEAR_HOURS})")
         else:
             # pvlib option
             if self._number_of_inverters:
@@ -161,9 +173,9 @@ class PvProducer(Producer):
             tf = TimezoneFinder()
             self._time_zone = tf.timezone_at(lng=self._longitude, lat=self._latitude)
         # take first 365 to deal with leap years
-        year_one = datetime.datetime.today().year
+        year_one = f"{self._start_year:04d}"
         times = pd.date_range(start=f'{year_one}-01-01 00:00', end=f'{year_one}-12-31 23:00', freq='h',
-                              tz=self._time_zone)[:8760]
+                              tz=self._time_zone)[:constants.YEAR_HOURS]
         self._power_output.index = times
         self._power_output.columns = ['pv_output']
 
@@ -352,5 +364,15 @@ class PvProducer(Producer):
         if not 0 <= value < 1:
             raise ValueError("Annual degradation should be between 0 (inclusive) and 1 (exclusive)")
         self._annual_deg = value
+
+    @property
+    def start_year(self):
+        return self._start_year
+
+    def _set_start_year(self, value: int):
+        if value is None:
+            self._start_year = datetime.datetime.today().year
+        else:
+            self._start_year = value
 
     # endregion

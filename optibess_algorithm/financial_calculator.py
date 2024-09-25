@@ -1,12 +1,13 @@
 from typing import Any
 
 import numpy_financial as npf
-import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
 from .output_calculator import OutputCalculator
 from . import constants
+from .constants import YEAR_HOURS
+from .utils import get_yearly_prices, build_tariff_table, is_real_numbers
 
 
 class FinancialCalculator:
@@ -31,6 +32,8 @@ class FinancialCalculator:
                  interest_rate: float = constants.DEFAULT_INTEREST_RATE / 100,
                  cpi: float = constants.DEFAULT_CPI / 100,
                  battery_cost_deg: float = constants.DEFAULT_BATTERY_COST_DEG / 100,
+                 hourly_sell_prices: np.ndarray[Any, np.dtype[np.float32]] | None = None,
+                 hourly_buy_prices: np.ndarray[Any, np.dtype[np.float32]] | None = None,
                  tariff_table: np.ndarray[Any, np.dtype[np.float64]] | None = None,
                  base_tariff: float = constants.DEFAULT_BASE_TARIFF,
                  winter_low_factor: float = constants.DEFAULT_WINTER_LOW_FACTOR,
@@ -57,7 +60,7 @@ class FinancialCalculator:
         :param interest_rate: the market interest rate (as fraction)
         :param cpi: the market consumer price index (as fraction)
         :param battery_cost_deg yearly degradation in price of batteries (as fraction)
-        :param tariff_table: a numpy array with tariff for every hour in every month (or none)
+        :param tariff_table: a numpy array with tariff for every hour in each day of the week in every month (or none)
         :param base_tariff: basic tariff for power (multiplied by seasonal factor to get seasonal rate, shekel. if
             tariff table is supplied, this and the factor below are ignored)
         :param winter_low_factor: winter low factor
@@ -87,33 +90,31 @@ class FinancialCalculator:
 
         self.output_calculator = output_calculator
 
-        if tariff_table is not None:
-            self._set_tariff_table(tariff_table)
+        if hourly_sell_prices is not None:
+            self._set_hourly_sell_prices(hourly_sell_prices)
+            self._set_hourly_buy_prices(hourly_buy_prices)
+            self._tariff_table = None
         else:
-            # revenues variables
-            self._winter_months = [0, 1, 11]
-            self._transition_months = [2, 3, 4, 9, 10]
-            self._summer_months = [5, 6, 7, 8]
-            # day of the week by datetime notation (sunday is 0)
-            self._week_days = [0, 1, 2, 3, 4]
-            self._weekend_days = [5, 6]
-            self._winter_low_hours = list(range(1, 17)) + [22, 23, 0]
-            self._winter_high_hours = list(range(17, 22))
-            self._transition_low_hours = self._winter_low_hours
-            self._transition_high_hours = self._winter_high_hours
-            self._summer_low_hours = list(range(1, 17)) + [23, 0]
-            self._summer_high_hours = list(range(17, 23))
-            self._winter_low = base_tariff * winter_low_factor
-            self._winter_high_week = base_tariff * winter_high_factor
-            self._transition_low = base_tariff * transition_low_factor
-            self._transition_high_week = base_tariff * transition_high_factor
-            self._summer_low = base_tariff * summer_low_factor
-            self._summer_high_week = base_tariff * summer_high_factor
-            self._winter_high_weekend = self._winter_high_week
-            self._transition_high_weekend = self._transition_low
-            self._summer_high_weekend = self._summer_low
+            if tariff_table is not None:
+                self._set_tariff_table(tariff_table)
+            else:
+                # revenues variables
+                self._winter_low = base_tariff * winter_low_factor
+                self._winter_high_week = base_tariff * winter_high_factor
+                self._transition_low = base_tariff * transition_low_factor
+                self._transition_high_week = base_tariff * transition_high_factor
+                self._summer_low = base_tariff * summer_low_factor
+                self._summer_high_week = base_tariff * summer_high_factor
+                self._winter_high_weekend = self._winter_high_week
+                self._transition_high_weekend = self._transition_low
+                self._summer_high_weekend = self._summer_low
+                # create tariff table
+                self._tariff_table = \
+                    build_tariff_table(self._winter_low, self._winter_high_week, self._winter_high_weekend,
+                                       self._transition_low, self._transition_high_week, self._transition_high_weekend,
+                                       self._summer_low, self._summer_high_week, self._summer_high_weekend)
 
-            self._build_tariff_table()
+            self._hourly_sell_prices = self._hourly_buy_prices = None
 
         self.buy_from_grid_factor = buy_from_grid_factor
         self._reset_variables()
@@ -122,6 +123,7 @@ class FinancialCalculator:
         self._income_details = None
         # save the last tariff matrix calculated
         self._hourly_tariff = None
+        self._hourly_buy_tariff = None
         self._hourly_matrix_year = None
 
     # region Properties
@@ -475,6 +477,34 @@ class FinancialCalculator:
         return self._income_details
 
     @property
+    def hourly_sell_prices(self):
+        return self._hourly_sell_prices
+
+    def _set_hourly_sell_prices(self, value):
+        if value is not None:
+            if not isinstance(value, np.ndarray) and is_real_numbers(value):
+                raise ValueError("Hourly sell prices should be a numpy array")
+            if value.shape != (YEAR_HOURS,) and value.shape != (self.output_calculator.project_hour_num,):
+                raise ValueError(f"Hourly sell prices shape should be ({YEAR_HOURS},) or "
+                                 f"({self.output_calculator.project_hour_num},)")
+            self._hourly_sell_prices = value
+
+    @property
+    def hourly_buy_prices(self):
+        return self._hourly_buy_prices
+
+    def _set_hourly_buy_prices(self, value):
+        if value is not None:
+            if not isinstance(value, np.ndarray) and is_real_numbers(value):
+                raise ValueError("Hourly buy prices should be a numpy array")
+            if value.shape != (YEAR_HOURS,) and value.shape != (self.output_calculator.project_hour_num,):
+                raise ValueError(f"Hourly buy prices shape should be ({YEAR_HOURS},) or "
+                                 f"({self.output_calculator.project_hour_num},)")
+            self._hourly_buy_prices = value
+        else:
+            self._hourly_buy_prices = self._hourly_sell_prices
+
+    @property
     def tariff_table(self):
         """
         a table with power tariffs for each hour of the day in each month
@@ -483,43 +513,11 @@ class FinancialCalculator:
 
     def _set_tariff_table(self, value: np.ndarray[Any, np.dtype[np.float64]]):
         if value is not None:
-            if value.shape != (12, 24):
-                raise ValueError("Tariff table should be of shape (12, 24)")
-            else:
-                # repeats the tariff table 7 times (for each day of the week)
-                temp = np.zeros(7)
-                self._tariff_table = value[None, ...] + temp[:, None, None]
+            if value.shape != (7, 12, 24):
+                raise ValueError("Tariff table should be of shape (7, 12, 24)")
+            self._tariff_table = value
 
     # endregion
-
-    def _build_tariff_table(self):
-        """
-        create a tariff table containing the tariff in each hour for each month
-        """
-        self._tariff_table = np.zeros((7, 12, 24))
-        # winter tariffs
-        self._tariff_table[np.ix_(self._week_days, self._winter_months, self._winter_low_hours)] = self._winter_low
-        self._tariff_table[np.ix_(self._weekend_days, self._winter_months, self._winter_low_hours)] = self._winter_low
-        self._tariff_table[np.ix_(self._week_days, self._winter_months, self._winter_high_hours)] = \
-            self._winter_high_week
-        self._tariff_table[np.ix_(self._weekend_days, self._winter_months, self._winter_high_hours)] = \
-            self._winter_high_weekend
-        # transition tariffs
-        self._tariff_table[np.ix_(self._week_days, self._transition_months, self._transition_low_hours)] = \
-            self._transition_low
-        self._tariff_table[np.ix_(self._weekend_days, self._transition_months, self._transition_low_hours)] = \
-            self._transition_low
-        self._tariff_table[np.ix_(self._week_days, self._transition_months, self._transition_high_hours)] = \
-            self._transition_high_week
-        self._tariff_table[np.ix_(self._weekend_days, self._transition_months, self._transition_high_hours)] = \
-            self._transition_high_weekend
-        # summer tariffs
-        self._tariff_table[np.ix_(self._week_days, self._summer_months, self._summer_low_hours)] = self._summer_low
-        self._tariff_table[np.ix_(self._weekend_days, self._summer_months, self._summer_low_hours)] = self._summer_low
-        self._tariff_table[np.ix_(self._week_days, self._summer_months, self._summer_high_hours)] = \
-            self._summer_high_week
-        self._tariff_table[np.ix_(self._weekend_days, self._summer_months, self._summer_high_hours)] = \
-            self._summer_high_weekend
 
     def get_hourly_tariff(self, year):
         """
@@ -529,12 +527,14 @@ class FinancialCalculator:
         :return: a numpy array with the tariffs
         """
         if self._hourly_tariff is not None and self._hourly_matrix_year == year:
-            return self._hourly_tariff
-        times = pd.date_range(start=f'{year}-01-01 00:00', end=f'{year}-12-31 23:00', freq='h', tz='Asia/Jerusalem')
-        def f(x): return self._tariff_table[(x.day_of_week + 1) % 7, x.month - 1, x.hour]
-        self._hourly_tariff = f(times)
+            return self._hourly_tariff, self._hourly_buy_tariff
+
+        relative_year = year - self.output_calculator.producer.start_year
+        self._hourly_tariff,self._hourly_buy_tariff = \
+            get_yearly_prices(relative_year, self._hourly_sell_prices, self._hourly_buy_prices, self._tariff_table,
+                              self.output_calculator.producer.start_year, self.output_calculator.yearly_hour_num)
         self._hourly_matrix_year = year
-        return self._hourly_tariff
+        return self._hourly_tariff, self._hourly_buy_tariff
 
     def get_power_sales(self, power_output=None, cpi: float | None = None, purchased_from_grid=None,
                         no_purchase: bool = False):
@@ -566,12 +566,13 @@ class FinancialCalculator:
         cpi_multi = 1
         self._income_details = []
         for year in range(self._num_of_years):
-            hourly_tariff = self.get_hourly_tariff(power_output[year].index[0].year)
-            temp = power_output[year] * hourly_tariff * cpi_multi
-            temp = np.where(temp >= 0, temp, temp * self._buy_from_grid_factor)
+            hourly_tariff, hourly_buy_tariff = self.get_hourly_tariff(power_output[year].index[0].year)
+            temp = np.where(power_output[year] >= 0,
+                            power_output[year] * hourly_tariff,
+                            power_output[year] * hourly_buy_tariff) * cpi_multi
             # add the payments for power from grid to battery
             if not no_purchase:
-                temp -= purchased_from_grid[year] * hourly_tariff * cpi_multi * self._buy_from_grid_factor
+                temp -= purchased_from_grid[year] * hourly_buy_tariff * cpi_multi
             sales.append(temp.sum())
             # save the matrices for each year
             self._income_details.append(temp)
@@ -596,8 +597,8 @@ class FinancialCalculator:
         purchases = []
         cpi_multi = 1
         for year in range(self._num_of_years):
-            hourly_matrix = self.get_hourly_tariff(purchased_from_grid[year].index[0].year)
-            temp = purchased_from_grid[year] * hourly_matrix * cpi_multi * self._buy_from_grid_factor
+            hourly_tariff, hourly_buy_tariff = self.get_hourly_tariff(purchased_from_grid[year].index[0].year)
+            temp = purchased_from_grid[year] * hourly_buy_tariff * cpi_multi
             purchases.append(temp.sum())
             cpi_multi *= 1 + cpi
         return purchases
@@ -702,7 +703,7 @@ class FinancialCalculator:
         :param purchased_from_grid: list of hourly amount purchased from grid to fill battery (list of pandas series).
             if None takes info from output_calculator
 
-        :returns income, expenses and revenues of the system
+        :return: income, expenses and revenues of the system
         """
         income = self.get_power_sales(power_output=power_output, purchased_from_grid=purchased_from_grid)
         costs = self.get_expenses()

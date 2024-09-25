@@ -5,8 +5,8 @@ import numpy as np
 import numpy.testing as nptesting
 import os
 
-from optibess_algorithm.output_calculator import OutputCalculator, Coupling
-from optibess_algorithm.producers import Producer
+from optibess_algorithm.output_calculator import OutputCalculator, Coupling, NNOutputCalculator
+from optibess_algorithm.producers import Producer, PvProducer
 from optibess_algorithm.power_storage import PowerStorage
 import optibess_algorithm.constants as constants
 
@@ -22,6 +22,7 @@ class TestOutputCalculator(unittest.TestCase):
                                                         pd.date_range(start='2023-1-1 00:00',
                                                                       end='2023-12-31 23:00', freq='h'), ['pv_output'])
         type(self.producer).annual_deg = 0.0035
+        type(self.producer).start_year = 2023
         # create mock power storage
         self.power_storage = Mock(spec=PowerStorage)
         type(self.power_storage).num_of_years = 25
@@ -41,7 +42,7 @@ class TestOutputCalculator(unittest.TestCase):
         result = OutputCalculator(num_of_years=25, grid_size=5000, producer=self.producer,
                                   power_storage=self.power_storage)
         # check pcs value
-        self.assertAlmostEqual(result.pcs_power, 5532, 0)
+        self.assertAlmostEqual(result.pcs_power, 5492, 0)
 
     def test_creation_incorrect_num_of_years(self):
         # check for error in creation
@@ -53,7 +54,7 @@ class TestOutputCalculator(unittest.TestCase):
         # change value
         self.output.grid_size = 4000
         # check pcs value
-        self.assertAlmostEqual(self.output.pcs_power, 4441, 0)
+        self.assertAlmostEqual(self.output.pcs_power, 4401, 0)
 
     def test_grid_size_incorrect_value(self):
         # check for error in setter
@@ -77,7 +78,7 @@ class TestOutputCalculator(unittest.TestCase):
         # changed value
         self.output.power_storage = power_storage
         # check pcs value
-        self.assertAlmostEqual(self.output.pcs_power, 5552, 0)
+        self.assertAlmostEqual(self.output.pcs_power, 5502, 0)
 
     def test_power_storage_incorrect_type(self):
         # check for error in setter
@@ -101,7 +102,7 @@ class TestOutputCalculator(unittest.TestCase):
         self.assertAlmostEqual(self.output.prod_trans_loss, 0.02485, 4)
         self.assertEqual(self.output.charge_loss, 0.015)
         self.assertAlmostEqual(self.output.grid_bess_loss, 0.03947725, 4)
-        self.assertAlmostEqual(self.output.pcs_power, 5559, 0)
+        self.assertAlmostEqual(self.output.pcs_power, 5519, 0)
 
     def test_set_coupling_same_value(self):
         # change value
@@ -115,7 +116,7 @@ class TestOutputCalculator(unittest.TestCase):
         # check values
         self.assertAlmostEqual(self.output.charge_loss, 0.02972575, 4)
         self.assertAlmostEqual(self.output.prod_trans_loss, 0.01495, 4)
-        self.assertAlmostEqual(self.output.pcs_power, 5532, 0)
+        self.assertAlmostEqual(self.output.pcs_power, 5492, 0)
 
     def test_set_mvpv_loss_values_changed_dc_coupling(self):
         # change to dc coupling
@@ -126,7 +127,7 @@ class TestOutputCalculator(unittest.TestCase):
         # check values
         self.assertEqual(self.output.charge_loss, 0.015)
         self.assertAlmostEqual(self.output.prod_trans_loss, 0.02485, 4)
-        self.assertAlmostEqual(self.output.pcs_power, 5559, 0)
+        self.assertAlmostEqual(self.output.pcs_power, 5519, 0)
 
     def test_charge_loss_incorrect_value(self):
         # check for error in setter
@@ -140,7 +141,7 @@ class TestOutputCalculator(unittest.TestCase):
         # check values
         self.assertAlmostEqual(self.output.grid_bess_loss, 0.0365518, 4)
         self.assertAlmostEqual(self.output.prod_trans_loss, 0.02188, 4)
-        self.assertAlmostEqual(self.output.pcs_power, 5543, 0)
+        self.assertAlmostEqual(self.output.pcs_power, 5503, 0)
 
     def test_set_trans_loss_values_changed_dc_coupling(self):
         # change to dc coupling
@@ -150,7 +151,7 @@ class TestOutputCalculator(unittest.TestCase):
         # check values
         self.assertAlmostEqual(self.output.grid_bess_loss, 0.0414177, 4)
         self.assertAlmostEqual(self.output.prod_trans_loss, 0.02682, 4)
-        self.assertAlmostEqual(self.output.pcs_power, 5571, 0)
+        self.assertAlmostEqual(self.output.pcs_power, 5531, 0)
 
     def test_trans_loss_incorrect_value(self):
         # check for error in setter
@@ -164,7 +165,7 @@ class TestOutputCalculator(unittest.TestCase):
         # check values
         self.assertAlmostEqual(self.output.grid_bess_loss, 0.03752695, 4)
         self.assertAlmostEqual(self.output.charge_loss, 0.03752695, 4)
-        self.assertAlmostEqual(self.output.pcs_power, 5548, 0)
+        self.assertAlmostEqual(self.output.pcs_power, 5508, 0)
 
     def test_set_mvbat_loss_values_changed_dc_coupling(self):
         # change to dc coupling
@@ -174,7 +175,7 @@ class TestOutputCalculator(unittest.TestCase):
         # check values
         self.assertAlmostEqual(self.output.grid_bess_loss, 0.03947725, 4)
         self.assertEqual(self.output.charge_loss, 0.015)
-        self.assertAlmostEqual(self.output.pcs_power, 5559, 0)
+        self.assertAlmostEqual(self.output.pcs_power, 5519, 0)
 
     def test_mvbat_loss_incorrect_value(self):
         # check for error in setter
@@ -189,7 +190,7 @@ class TestOutputCalculator(unittest.TestCase):
         self.assertAlmostEqual(self.output.prod_trans_loss, 0.0199, 4)
         self.assertAlmostEqual(self.output.grid_bess_loss, 0.0306811, 4)
         self.assertAlmostEqual(self.output.charge_loss, 0.0306811, 4)
-        self.assertAlmostEqual(self.output.pcs_power, 5510, 0)
+        self.assertAlmostEqual(self.output.pcs_power, 5470, 0)
 
     def test_set_pcs_loss_values_changed_dc_coupling(self):
         # change to dc coupling
@@ -200,7 +201,7 @@ class TestOutputCalculator(unittest.TestCase):
         self.assertAlmostEqual(self.output.prod_trans_loss, 0.02089, 4)
         self.assertAlmostEqual(self.output.grid_bess_loss, 0.03557665, 4)
         self.assertEqual(self.output.charge_loss, 0.015)
-        self.assertAlmostEqual(self.output.pcs_power, 5537, 0)
+        self.assertAlmostEqual(self.output.pcs_power, 5497, 0)
 
     def test_pcs_loss_incorrect_value(self):
         # check for error in setter
@@ -214,7 +215,7 @@ class TestOutputCalculator(unittest.TestCase):
         # check values
         self.assertAlmostEqual(self.output.grid_bess_loss, 0.0346015, 4)
         self.assertAlmostEqual(self.output.charge_loss, 0.0346015, 4)
-        self.assertAlmostEqual(self.output.pcs_power, 5532, 0)
+        self.assertAlmostEqual(self.output.pcs_power, 5492, 0)
 
     def test_set_dc_dc_loss_values_changed_dc_coupling(self):
         # change to dc coupling
@@ -224,7 +225,7 @@ class TestOutputCalculator(unittest.TestCase):
         # check values
         self.assertAlmostEqual(self.output.grid_bess_loss, 0.0346015, 4)
         self.assertEqual(self.output.charge_loss, 0.01)
-        self.assertAlmostEqual(self.output.pcs_power, 5532, 0)
+        self.assertAlmostEqual(self.output.pcs_power, 5492, 0)
 
     def test_dc_dc_loss_incorrect_value(self):
         # check for error in setter
@@ -241,7 +242,7 @@ class TestOutputCalculator(unittest.TestCase):
         # change value
         self.output.aug_table = np.array([[0, 70, 7000], [96, 20, 1000], [192, 10, 1000]])
         # check pcs value
-        self.assertAlmostEqual(self.output.pcs_power, 5524, 0)
+        self.assertAlmostEqual(self.output.pcs_power, 5488, 0)
 
     def test_discharge_hour_incorrect_value(self):
         # check for error in setter
@@ -273,6 +274,7 @@ class TestOutputCalculator(unittest.TestCase):
         self.output._pcs_power = 0
         self.output._df = pd.read_csv(os.path.join(test_folder, "output_calculator/overflow_data1.csv"))
         self.output._df["acc_losses"] = 0
+        self.output._df["battery_nameplate"] = 0
         # check outputs
         self.output._calc_overflow()
         nptesting.assert_array_almost_equal(self.output._df["overflow"],
@@ -703,3 +705,92 @@ class TestOutputCalculator(unittest.TestCase):
             self.output.plot_stat()
         self.assertEqual(str(e.exception), "The calculator full results are not available (either you didn't use run, "
                                            "or used save_all_result=False)")
+
+
+class TestNNOutputCalculator(unittest.TestCase):
+
+    def setUp(self) -> None:
+        # create mock producer
+        self.producer = Mock(spec=Producer)
+        type(self.producer).power_output = pd.DataFrame(np.zeros((8760,)),
+                                                        pd.date_range(start='2023-1-1 00:00',
+                                                                      end='2023-12-31 23:00', freq='h'), ['pv_output'])
+        type(self.producer).annual_deg = 0.0035
+        type(self.producer).start_year = 2023
+        # create mock power storage
+        self.power_storage = Mock(spec=PowerStorage)
+        type(self.power_storage).num_of_years = 25
+        type(self.power_storage).aug_table = np.array([[0, 70, 7000], [96, 20, 2000], [192, 10, 1000]])
+        type(self.power_storage).rte_table = constants.DEFAULT_RTE_TABLE
+        type(self.power_storage).degradation_table = constants.DEFAULT_DEG_TABLE
+        type(self.power_storage).dod_table = constants.DEFAULT_DOD_TABLE
+        type(self.power_storage).active_self_consumption = constants.DEFAULT_ACTIVE_SELF_CONSUMPTION
+        type(self.power_storage).idle_self_consumption = constants.DEFAULT_IDLE_SELF_CONSUMPTION
+
+    def test_creation_regular(self):
+        prices = np.zeros((constants.YEAR_HOURS,))
+        result = NNOutputCalculator(sell_prices=prices, num_of_years=25, grid_size=5000, producer=self.producer,
+                                    power_storage=self.power_storage)
+        nptesting.assert_array_equal(result.buy_prices, prices)
+
+    def test_creation_tariff_table(self):
+        tariff_table = np.zeros((7, 12, 24))
+        result = NNOutputCalculator(tariff_table=tariff_table, num_of_years=24, grid_size=5000, producer=self.producer,
+                                    power_storage=self.power_storage)
+        nptesting.assert_array_equal(result.tariff_table, tariff_table)
+
+    def test_creation_wrong_prices_type(self):
+        prices = [0] * constants.YEAR_HOURS
+        with self.assertRaises(ValueError) as e:
+            NNOutputCalculator(sell_prices=prices, num_of_years=25, grid_size=5000, producer=self.producer,
+                               power_storage=self.power_storage)
+        self.assertEqual(str(e.exception), "Prices should be a numpy array of floats")
+
+    def test_creation_wrong_prices_shape(self):
+        prices = np.zeros((10, 10, 10))
+        with self.assertRaises(ValueError) as e:
+            NNOutputCalculator(sell_prices=prices, num_of_years=25, grid_size=5000, producer=self.producer,
+                               power_storage=self.power_storage)
+        self.assertEqual(str(e.exception), f"Prices shape should be ({constants.YEAR_HOURS},) or (219144, ), prices "
+                                           f"for each hour in a year or for each hour of every year")
+
+    def test_creation_prices_incompatible_shapes(self):
+        prices = np.zeros((8760,))
+        buy_prices = np.zeros((219144,))
+        with self.assertRaises(ValueError) as e:
+            NNOutputCalculator(sell_prices=prices, num_of_years=25, grid_size=5000, producer=self.producer,
+                               power_storage=self.power_storage, buy_prices=buy_prices)
+        self.assertEqual(str(e.exception), "Sell prices and buy prices should have the same shape")
+
+    def test_creation_wrong_tariff_table_shape(self):
+        tariff_table = np.zeros((6, 12, 24))
+        with self.assertRaises(ValueError) as e:
+            NNOutputCalculator(tariff_table=tariff_table, num_of_years=25, grid_size=5000, producer=self.producer,
+                               power_storage=self.power_storage)
+        self.assertEqual(str(e.exception), "Tariff table should be of shape (7, 12, 24)")
+
+    def test_create_pos_encoding(self):
+        # create calculator
+        prices = np.zeros((constants.YEAR_HOURS,))
+        output = NNOutputCalculator(sell_prices=prices, num_of_years=25, grid_size=5000, producer=self.producer,
+                                    power_storage=self.power_storage)
+        result = output._create_pos_encoding()
+        self.assertEqual(result[0][0], 0)
+        self.assertAlmostEqual(result[1][2], 0.62979717652, 4)
+
+    def test_run(self):
+        # create calculator
+        prices = np.loadtxt("output_calculator/prices.csv")
+        type(self.power_storage).aug_table = np.array([[0, 100, 30000]])
+        type(self.power_storage).block_size = 300
+        producer = PvProducer("test.csv", pv_peak_power=13000)
+        output = NNOutputCalculator(sell_prices=prices, num_of_years=25, grid_size=7000, producer=producer,
+                                    power_storage=self.power_storage)
+        output._prod_trans_loss = 0.024
+        output._charge_loss = 0.035
+        output._grid_bess_loss = 0.04
+        output.run()
+        expected_result = [-0., -0., -0., -0., -0., -0., -0., 7000., 7000.,
+                           7000., 7000., 7000., 7000., 1978.25, 5345.75, 2786.48, 7000., 6974.29,
+                           6974.29, 3581.76, -0., -0., -0., -0.]
+        nptesting.assert_array_almost_equal(output.output[0][:24], expected_result, 2)

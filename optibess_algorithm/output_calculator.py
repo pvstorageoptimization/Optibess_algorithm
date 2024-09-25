@@ -1,18 +1,25 @@
 import datetime
+import math
+import os
 from collections.abc import Iterable
 from enum import Enum, auto
+from typing import Any
 
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+import onnxruntime
 
 from .producers import Producer
 from .power_storage import PowerStorage
-from .utils import year_diff, month_diff
+from .utils import year_diff, month_diff, relu, clamp, is_leap_year, hour_num_in_range, tariff_table_to_hourly, \
+    get_yearly_prices, is_real_numbers
+from .constants import YEAR_DAYS, YEAR_HOURS, DAY_LENGTH
 
 
 # TODO: find a way to deal with case where discharge hour is 2 (this is problematic since daylight saving cause 1 day to
 #  has 2 entry with the hour 2:00 and 1 day that has no hour 2:00)
+
 
 class Coupling(Enum):
     """
@@ -59,8 +66,6 @@ class OutputCalculator:
         :param save_all_results: whether to save the all the data for every year
         :param producer_factor: a factor by which to reduce the producer output
         """
-        # times variables
-        self._set_num_of_years(num_of_years)
 
         # pv output variables
         self.grid_size = grid_size
@@ -68,6 +73,9 @@ class OutputCalculator:
         self._initial_data = producer.power_output
         # get the first date in the data
         self._initial_date = self._initial_data.index[0]
+
+        # times variables
+        self._set_num_of_years(num_of_years)
 
         # storage variables
         self.power_storage = power_storage
@@ -109,6 +117,7 @@ class OutputCalculator:
         if value <= 0:
             raise ValueError("Number of years should be positive")
         self._num_of_years = value
+        self._project_hour_num, self._yearly_hour_num = hour_num_in_range(self._producer.start_year, self._num_of_years)
 
     @property
     def grid_size(self):
@@ -394,7 +403,7 @@ class OutputCalculator:
     def _set_pcs_power(self):
         total_battery_nameplate = sum(self._power_storage.aug_table[:, 2])
         self._pcs_power = self._grid_size / (self._power_storage.rte_table[0] * (1 - self._grid_bess_loss)) + \
-            2 * total_battery_nameplate * self._power_storage.active_self_consumption
+            total_battery_nameplate * self._power_storage.active_self_consumption
         # if total battery is small compare to grid size limit pcs by it size instead by grid size
         self._pcs_power = min(sum(self._power_storage.aug_table[:, 2]), self._pcs_power)
 
@@ -485,6 +494,20 @@ class OutputCalculator:
     def save_all_results(self, value: bool):
         self._save_all_results = value
 
+    @property
+    def project_hour_num(self):
+        """
+        return the number of hours in the project
+        """
+        return self._project_hour_num
+
+    @property
+    def yearly_hour_num(self):
+        """
+        return a list for number of hours in each year
+        """
+        return self._yearly_hour_num.copy()
+
     # endregion
 
     def _get_data(self, year: int):
@@ -498,20 +521,18 @@ class OutputCalculator:
             self._df = self._initial_data.copy(deep=True) * self._producer_factor
         else:
             # calculate PV for the year
-            was_leap_year = (self._df.index[0].year % 400 == 0) or ((self._df.index[0].year % 100 != 0) and
-                                                                    (self._df.index[0].year % 4 == 0))
+            was_leap_year = is_leap_year(self._df.index[0].year)
             if was_leap_year:
-                self._df = self._df.head(-24)
+                self._df = self._df.head(-DAY_LENGTH)
             # if last year was leap years add 366 days and not 365
-            self._df.index += datetime.timedelta(days=(366 if was_leap_year else 365))
+            self._df.index += datetime.timedelta(days=(YEAR_DAYS + 1 if was_leap_year else YEAR_DAYS))
             # TODO: make degradation linear over the days
             self._df["pv_output"] = self._df["pv_output"] * (1 - self._producer.annual_deg)
         # checks if this is a leap year and add a day if so
-        is_leap_year = (self._df.index[0].year % 400 == 0) or ((self._df.index[0].year % 100 != 0) and
-                                                               (self._df.index[0].year % 4 == 0))
-        if is_leap_year:
-            temp = self._df.tail(24)
-            temp.index = self._df.index[-24:] + datetime.timedelta(days=1)
+        self._is_leap_year = is_leap_year(self._df.index[0].year)
+        if self._is_leap_year:
+            temp = self._df.tail(DAY_LENGTH)
+            temp.index = self._df.index[-DAY_LENGTH:] + datetime.timedelta(days=1)
             self._df = pd.concat([self._df, temp])
 
         if self._save_all_results:
@@ -521,17 +542,6 @@ class OutputCalculator:
 
         # create an index with 1 entry for each day for later calculations
         self._daily_index = pd.date_range(self._df.index[self._bess_discharge_start_hour], self._df.index[-1], freq='d')
-
-    def _calc_overflow(self):
-        """
-        calculate the hourly overflow of the pv output to bess and grid together
-        """
-        # calculate overflow of power from pv and bess to grid
-        temp = self._df["pv_output"] - self._grid_size / (1 - self._prod_trans_loss) - \
-            self._pcs_power / (1 - self._charge_loss)
-        self._df["overflow"] = np.where(temp > 0, temp, 0)
-        # add losses due to overflow
-        self._df["acc_losses"] += self._df["overflow"]
 
     def _get_day_deg(self, date: pd.Timestamp, aug_initial_date: pd.Timestamp):
         """
@@ -588,7 +598,7 @@ class OutputCalculator:
             else:
                 first_day_deg = self._power_storage.degradation_table[0]
             last_day_deg = self._get_day_deg(self._df.index[-1], aug_initial_date)
-            num_of_days = self._df.index.shape[0] // 24
+            num_of_days = self._df.index.shape[0] // DAY_LENGTH
             bat_deg = [first_day_deg - (x / (num_of_days - 1)) * (first_day_deg - last_day_deg)
                        for x in range(num_of_days)]
             # fill the battery degradation for each hour according to the next discharge hour
@@ -606,15 +616,27 @@ class OutputCalculator:
         # sum all augmentations
         self._df["battery_capacity"] = self._df.loc[:, self._df.columns.str.startswith('aug')].sum(axis=1)
 
+    def _calc_overflow(self):
+        """
+        calculate the hourly overflow of the pv output to bess and grid together
+        """
+        # calculate overflow of power from pv and bess to grid
+        temp = (self._df["pv_output"] - self._grid_size / (1 - self._prod_trans_loss) -
+                self._pcs_power / (1 - self._charge_loss) - self._df["battery_nameplate"] *
+                self._power_storage.active_self_consumption)
+        self._df["overflow"] = np.where(temp > 0, temp, 0)
+        # add losses due to overflow
+        self._df["acc_losses"] += self._df["overflow"]
+
     def _calc_pv_to_bess(self):
         """
         calculate the hourly transmission of power from pv to bess
         """
         # calculate excess power from pv (after reducing power that can be sent from pv to grid, and limited by pcs
         # connection size)
-        temp = np.minimum(self._df["pv_output"] - self._grid_size / (1 - self._prod_trans_loss),
-                          self._pcs_power / (1 - self._charge_loss))
         self._active_hourly_self_cons = self._df["battery_nameplate"] * self._power_storage.active_self_consumption
+        temp = np.minimum(self._df["pv_output"] - self._grid_size / (1 - self._prod_trans_loss),
+                          self._pcs_power / (1 - self._charge_loss) + self._active_hourly_self_cons)
         prelim_pv2bess = np.where(temp > self._active_hourly_self_cons, temp, 0)
         # calculate battery self consumption when pv sends power to it
         hourly_battery_self_consumption = np.where(prelim_pv2bess > 0,
@@ -659,7 +681,8 @@ class OutputCalculator:
         # get the maximum extra pv that can be delivered to bess (accounting for available pv and remaining pcs
         # capacity)
         max_extra_pv2bess = np.array(np.minimum(np.maximum(self._df["pv_output"], 0),
-                                                self._pcs_power / (1 - self._charge_loss)) -
+                                                self._pcs_power / (1 - self._charge_loss) +
+                                                self._active_hourly_self_cons) -
                                      pv2bess_pre)
         max_extra_pv2bess = np.where(max_extra_pv2bess + pv2bess_pre > self._active_hourly_self_cons,
                                      max_extra_pv2bess,
@@ -743,7 +766,7 @@ class OutputCalculator:
         """
         # calculate the available bandwidth of the connection to the battery for charge (the connection size minus the
         # power from pv)
-        max_rate = np.array(np.minimum(self._pcs_power / (1 - self._grid_bess_loss) -
+        max_rate = np.array(np.minimum(self._pcs_power / (1 - self._grid_bess_loss) + self._active_hourly_self_cons -
                                        self._df["pv2bess"], self._grid_size))
         hours = self._df.index.hour
         # calculate the amount of power missing from the battery at the end of charge (including discharge losses)
@@ -756,7 +779,7 @@ class OutputCalculator:
         #  this day and the next are not 24)
         last_indices = self._indices + np.where(hours < self._bess_discharge_start_hour,
                                                 (self._bess_discharge_start_hour - hours),
-                                                self._bess_discharge_start_hour + 24 - hours)
+                                                self._bess_discharge_start_hour + DAY_LENGTH - hours)
         last_index = self._indices[-1]
         reductions = np.column_stack((np.minimum(self._indices + 1, last_index),
                                       np.minimum(last_indices, last_index))).ravel()
@@ -765,7 +788,7 @@ class OutputCalculator:
                                                    self._active_hourly_self_cons,
                                                    0)
         # use modulo for case discharge start hour is 0
-        max_rate_sums = np.where(hours != (self._bess_discharge_start_hour - 1 % 24),
+        max_rate_sums = np.where(hours != (self._bess_discharge_start_hour - 1 % DAY_LENGTH),
                                  np.add.reduceat((max_rate - hourly_battery_self_consumption), reductions)[::2],
                                  0)
         # the last index will get as the sum of its own max rate (because of how reduceat works) so we need to zero it
@@ -773,7 +796,7 @@ class OutputCalculator:
         max_rate_sums[-1] = 0
         # for the last day, for hours past the discharge hour, add the power inserted to the battery in the charge
         # hours of the first day (to account for power inserted in the next day)
-        max_rate_sums[-(24 - self._bess_discharge_start_hour):] += \
+        max_rate_sums[-(DAY_LENGTH - self._bess_discharge_start_hour):] += \
             sum(max_rate[:self._bess_discharge_start_hour] -
                 hourly_battery_self_consumption[:self._bess_discharge_start_hour]) * \
             self._power_storage.degradation_table[year + 1] / \
@@ -840,7 +863,7 @@ class OutputCalculator:
         hours = self._df.index.hour
         first_indices = self._indices - np.where(self._bess_discharge_start_hour <= hours,
                                                  (hours - self._bess_discharge_start_hour),
-                                                 24 - self._bess_discharge_start_hour + hours)
+                                                 DAY_LENGTH - self._bess_discharge_start_hour + hours)
         reductions = np.column_stack((np.maximum(first_indices, 0), self._indices)).ravel()
         max_rate_sums = np.where(hours == self._bess_discharge_start_hour,
                                  0,
@@ -940,6 +963,21 @@ class OutputCalculator:
                                    self._df["soc"] / self._df["battery_nameplate"] * 100,
                                    0)
 
+    def _calc_power_flow(self, year):
+        """
+        Calculate the power flow in the system for the given year
+
+        :param year: the year to calculate for (starting at 0 for the first year of simulation)
+        """
+        self._calc_pv_to_bess()
+        self._calc_daily_initial_battery_soc(year)
+        if self._fill_battery_from_grid:
+            self._calc_grid_to_bess(year)
+        else:
+            self._df["grid2bess"] = 0
+            self._df["bess_from_grid"] = 0
+        self._calc_power_to_grid(year)
+
     def run(self):
         """
         run the calculation and save hourly results into 'results' (power is in kW):
@@ -959,9 +997,10 @@ class OutputCalculator:
             grid_from_bess - power from bess to grid after losses (only when save_all_results is true),
             output - power form pv+bess to grid (after losses),
             battery_nameplate - the nameplate value of the battery,
-            acc_losses - the accumulated losses of the system (only when save_all_results is true))
+            acc_losses - the accumulated losses of the system (only when save_all_results is true),
+            soc - the state of charge of the BESS (only when save_all_results is true))
 
-        also save hourly output (last entry) to 'output'
+        also save hourly output to 'output'
         """
         # reset augmentations variables
         self._next_aug = 0
@@ -976,17 +1015,10 @@ class OutputCalculator:
         self._purchased_from_grid = []
         for year in range(self._num_of_years):
             self._get_data(year)
+            self._calc_augmentations()
             if self._save_all_results:
                 self._calc_overflow()
-            self._calc_augmentations()
-            self._calc_pv_to_bess()
-            self._calc_daily_initial_battery_soc(year)
-            if self._fill_battery_from_grid:
-                self._calc_grid_to_bess(year)
-            else:
-                self._df["grid2bess"] = 0
-                self._df["bess_from_grid"] = 0
-            self._calc_power_to_grid(year)
+            self._calc_power_flow(year)
             self._purchased_from_grid.append(self._df["grid2bess"] + self._df["grid2pv"])
             if self._save_all_results:
                 self._results.append(self._df.copy(deep=True))
@@ -1019,10 +1051,10 @@ class OutputCalculator:
                 months_data = [self._output[year][self._output[year].index.month == month] for month in range(1, 13)]
             # divide each month to hours (array for each month containing array for each hour, with value for every day
             # of the month)
-            year_data = [[month[month.index.hour == hour] for hour in range(0, 24)] for month in months_data]
+            year_data = [[month[month.index.hour == hour] for hour in range(0, DAY_LENGTH)] for month in months_data]
             averages.append([[round(y.mean()) for y in x] for x in year_data])
         averages = np.mean(averages, axis=0, dtype=int)
-        averages = np.vstack([list(range(24)), averages])
+        averages = np.vstack([list(range(DAY_LENGTH)), averages])
         return averages
 
     def plot_stat(self, years: Iterable[int] | None = None, stat: str = "output"):
@@ -1053,3 +1085,378 @@ class OutputCalculator:
         all_data = pd.concat(stat_data)
         all_data.plot()
         plt.show()
+
+
+class NNOutputCalculator(OutputCalculator):
+    """
+    Calculates the hourly output of the pv system and the storage system, using a neural network for daily scheduling
+    of charge/discharge
+    """
+
+    POS_ENCODING_DIM = 24
+    EPSILON = 0.00000001
+    DISCRETE_SPLIT_COUNT = 10
+    MAX_BAT_HOURS = 8
+
+    def __init__(self, tariff_table: np.ndarray[Any, np.dtype[np.float64]] | None = None, sell_prices=None,
+                 buy_prices=None, *args, **kwargs):
+        """
+        Initialize the calculator with info for the system
+
+        :param tariff_table: a numpy array with tariff for every hour in every month (optional, ignored if sell_prices
+            is provided)
+        :param sell_prices: the price for selling power in each hour of a year (1d array with floats, must be provided
+            if tariff table is not provided)
+        :param buy_prices: the prices for buying power in each hour of the year (1d array with floats, if None uses sell
+            prices)
+        """
+        if tariff_table is None and sell_prices is None:
+            raise ValueError("NNOutputCalculator expects either sell prices or tariff table!")
+        super().__init__(*args, **kwargs)
+        self._fill_battery_from_grid = True
+        self.tariff_table = tariff_table
+        if sell_prices is not None:
+            self.sell_prices = sell_prices
+            self.buy_prices = buy_prices if buy_prices is not None else sell_prices
+        else:
+            self._sell_prices = self._buy_prices = None
+        self._model_session = onnxruntime.InferenceSession(os.path.join(os.path.dirname(__file__),
+                                                                        "schedule_model.onnx"),
+                                                           providers=["CPUExecutionProvider"])
+        self._pos_encodes = self._create_pos_encoding()
+
+    def _create_pos_encoding(self):
+        """
+        create positional encoding for hours of a day
+        """
+        pos_encodes = [0] * DAY_LENGTH
+        # create positional encoding for each hour
+        for pos in range(DAY_LENGTH):
+            encoded = [pos / 100 ** (2 * (i // 2) / self.POS_ENCODING_DIM) for i in range(self.POS_ENCODING_DIM)]
+            encoded = [math.sin(encoded[i]) if i % 2 == 0 else math.cos(encoded[i]) for i in
+                       range(self.POS_ENCODING_DIM)]
+            pos_encodes[pos] = encoded
+        return pos_encodes
+
+    # disables the property as the class always assume it is true
+    @property
+    def fill_battery_from_grid(self):
+        return True
+
+    @fill_battery_from_grid.setter
+    def fill_battery_from_grid(self, value):
+        pass
+
+    @property
+    def sell_prices(self):
+        return self._sell_prices
+
+    @sell_prices.setter
+    def sell_prices(self, value: np.ndarray[float]):
+        if isinstance(value, np.ndarray) and is_real_numbers(value):
+            if value.shape != (YEAR_HOURS,) and value.shape != (self._project_hour_num,):
+                raise ValueError(f"Prices shape should be ({YEAR_HOURS},) or ({self._project_hour_num}, ), prices"
+                                 f" for each hour in a year or for each hour of every year")
+            # compare shapes if buy prices were set
+            try:
+                if value.shape != self._buy_prices.shape:
+                    raise ValueError("Sell prices and buy prices should have the same shape")
+            except AttributeError:
+                pass
+            self._sell_prices = value
+        else:
+            raise ValueError("Prices should be a numpy array of floats")
+
+    @property
+    def buy_prices(self):
+        return self._buy_prices
+
+    @buy_prices.setter
+    def buy_prices(self, value: np.ndarray[float]):
+        if isinstance(value, np.ndarray) and is_real_numbers(value):
+            if value.shape != (YEAR_HOURS,) and value.shape != (self._project_hour_num, ):
+                raise ValueError(f"Prices shape should be ({YEAR_HOURS},) or ({self._project_hour_num}, ), prices"
+                                 f" for each hour in a year or for each hour of every year")
+            try:
+                if value.shape != self._sell_prices.shape:
+                    raise ValueError("Sell prices and buy prices should have the same shape")
+            except AttributeError:
+                pass
+            self._buy_prices = value
+        else:
+            raise ValueError("Prices should be a numpy array of floats")
+
+    @property
+    def tariff_table(self):
+        """
+        a table with power tariffs for each hour of the day in each month
+        """
+        return self._tariff_table
+
+    @tariff_table.setter
+    def tariff_table(self, value: np.ndarray[Any, np.dtype[np.float64]]):
+        if value is not None:
+            if value.shape != (7, 12, DAY_LENGTH):
+                raise ValueError("Tariff table should be of shape (7, 12, 24)")
+        self._tariff_table = value
+
+    def _get_action_from_obs(self, obs: np.ndarray):
+        """
+        get action(s) from model given an observation
+
+        :param obs: the given observation
+        """
+        # pass inputs through the model
+        input_dict = {self._model_session.get_inputs()[0].name: obs, self._model_session.get_inputs()[1].name: []}
+        outs = self._model_session.run(None, input_dict)[0]
+        # get discrete actions from model outputs
+        outs_split = np.split(outs, [2 * self.DISCRETE_SPLIT_COUNT + 1, (2 * self.DISCRETE_SPLIT_COUNT + 1) * 2],
+                              axis=1)
+        results = np.stack([np.argmax(out_, -1) for out_ in outs_split], axis=1)
+        return results.squeeze().astype(np.float32)
+
+    def _convert_action_to_range(self, actions):
+        """
+        converted action(s) from discrete value to a range (-1 to 1 or 0 to 1)
+
+        :param actions: the actions to convert
+        """
+        actions[:, 0] = clamp((actions[:, 0] - self.DISCRETE_SPLIT_COUNT) / float(self.DISCRETE_SPLIT_COUNT))
+        actions[:, 1] = (actions[:, 1] - self.DISCRETE_SPLIT_COUNT) / float(self.DISCRETE_SPLIT_COUNT)
+        actions[:, 2] = np.where(actions[:, 2] == 0, -1, 1)
+        return actions
+
+    def _get_actions(self, year):
+        """
+        generate the actions from pytorch model for the system, which are use for power flow decisions
+
+        :param year: the year to calculate for (starting at 0 for the first year of simulation)
+        """
+        # if leap year add day
+        day_add = self._is_leap_year
+        hour_add = self._is_leap_year * DAY_LENGTH
+        # get prices according to init inputs
+        sell_prices, buy_prices = get_yearly_prices(year, self._sell_prices, self._buy_prices, self.tariff_table,
+                                                    self._producer.start_year, self._yearly_hour_num)
+        # normalize hourly power
+        normalization_factor = self.producer.rated_power * self.MAX_BAT_HOURS
+        normalized_hourly_power = np.expand_dims(self._df["pv_output"].values / normalization_factor, 1)
+        # create positional encoding for every day
+        pos_encoding = np.tile(self._pos_encodes, (YEAR_DAYS + day_add, 1))
+
+        ast = np.lib.stride_tricks.as_strided
+        # create array with pv power, sell prices and buy prices for every day, repeated for each hour, normalized with
+        # positional encoding added for each hour
+        stride = self._df["pv_output"].values.strides[0]
+        split_hourly_power = ast(normalized_hourly_power, (YEAR_DAYS + day_add, DAY_LENGTH),
+                                 (DAY_LENGTH * stride, stride))
+        split_hourly_power = np.repeat(split_hourly_power, DAY_LENGTH, axis=0) + pos_encoding
+        split_prices = ast(sell_prices, (YEAR_DAYS + day_add, DAY_LENGTH), (DAY_LENGTH, sell_prices.strides[0]))
+        max_sell_prices = np.repeat(np.max(np.abs(split_prices), axis=1) + self.EPSILON, DAY_LENGTH)
+        daily_sell_prices = np.repeat(split_prices, DAY_LENGTH, axis=0) / max_sell_prices[:, None] + pos_encoding
+        hourly_sell_prices = np.expand_dims(sell_prices / max_sell_prices, 1)
+        split_prices = ast(buy_prices, (YEAR_DAYS + day_add, DAY_LENGTH), (DAY_LENGTH, buy_prices.strides[0]))
+        max_buy_prices = np.repeat(np.max(np.abs(split_prices), axis=1) + self.EPSILON, DAY_LENGTH)
+        daily_buy_prices = np.repeat(split_prices, DAY_LENGTH, axis=0) / max_buy_prices[:, None] + pos_encoding
+        hourly_buy_prices = np.expand_dims(buy_prices / max_buy_prices, 1)
+        # create repeated normalized project parameters
+        grid_sizes = np.expand_dims(np.full(YEAR_HOURS + hour_add, self._grid_size / normalization_factor), 1)
+        pcs_vec = np.expand_dims(np.full(YEAR_HOURS + hour_add, self._pcs_power / normalization_factor), 1)
+        normalized_capacities = np.expand_dims(self._df["battery_capacity"].values / normalization_factor, 1)
+        # create vectorized observation for a whole years
+        obs = np.concatenate((grid_sizes, normalized_capacities, pcs_vec, normalized_hourly_power,
+                              hourly_sell_prices, hourly_buy_prices, split_hourly_power, daily_sell_prices,
+                              daily_buy_prices),
+                             axis=1, dtype=np.float32)
+
+        # get the actions
+        a = self._get_action_from_obs(obs)
+        # convert from discrete
+        a = self._convert_action_to_range(a)
+        self._actions = a
+
+    def _calc_power_flow(self, year):
+        # get actions from model
+        self._get_actions(year)
+
+        # if leap year add day
+        day_add = self._is_leap_year
+        hour_add = self._is_leap_year * DAY_LENGTH
+
+        # initialize arrays to fill
+        pv2grid = np.zeros(YEAR_HOURS + hour_add)
+        pv2bess = np.zeros(YEAR_HOURS + hour_add)
+        grid2bess = np.zeros(YEAR_HOURS + hour_add)
+        bess2grid = np.zeros(YEAR_HOURS + hour_add)
+        grid2pv = np.zeros(YEAR_HOURS + hour_add)
+        output = np.zeros(YEAR_HOURS + hour_add)
+        soc = np.zeros(YEAR_DAYS + day_add)
+
+        if self._save_all_results:
+            pv2bess_pre_acc = np.zeros(YEAR_HOURS + hour_add)
+            bess_from_pv = np.zeros(YEAR_HOURS + hour_add)
+            bess_from_grid = np.zeros(YEAR_HOURS + hour_add)
+            grid_from_pv = np.zeros(YEAR_HOURS + hour_add)
+            grid_from_bess = np.zeros(YEAR_HOURS + hour_add)
+            acc_losses = np.zeros(YEAR_HOURS + hour_add)
+            acc_soc = np.zeros(YEAR_HOURS + hour_add)
+
+        # get parameters
+        trans_ret = 1 - self._prod_trans_loss
+        charge_ret = 1 - self._charge_loss
+        grid_bess_ret = 1 - self._grid_bess_loss
+        active_self_cons = self._df["battery_nameplate"].values * self._power_storage.active_self_consumption
+        idle_self_cons = self._df["battery_nameplate"].values * self._power_storage.idle_self_consumption
+        rte = self._power_storage.rte_table[year]
+
+        for i in range(DAY_LENGTH):
+            # get values for current hour
+            hour_pv_output = self._df["pv_output"].values[i::DAY_LENGTH]
+            hour_active_self_cons = active_self_cons[i::DAY_LENGTH]
+            hour_idle_self_cons = idle_self_cons[i::DAY_LENGTH]
+            hour_actions = self._actions[i::DAY_LENGTH]
+
+            # calculate division of pv power to grid and bess
+            # get excess pv power that can only go to bess
+            available_cap = self._df["battery_capacity"].values[i::DAY_LENGTH] - soc
+            added_self_cons = np.where(available_cap > 0, hour_active_self_cons, 0)
+            pv2bess_pre = relu(np.minimum(np.minimum(relu(hour_pv_output - self._grid_size / trans_ret),
+                                                     available_cap / charge_ret + added_self_cons),
+                                          self._pcs_power / charge_ret + hour_active_self_cons))
+            # get additional available power to bess from pv
+            added_self_cons = np.where((pv2bess_pre < hour_active_self_cons) & (available_cap > 0),
+                                       hour_active_self_cons, 0)
+            max_extra_pv2bess = relu(np.minimum(np.minimum(relu(hour_pv_output),
+                                                           self._pcs_power / charge_ret + hour_active_self_cons),
+                                                available_cap / charge_ret + added_self_cons) - pv2bess_pre)
+            charge_condition = hour_actions[:, 2] > 0
+            # charge option calculations
+            # calculate total power from pv to bess according to the actions
+            # if there is excess power use it to charge even if not a charge option
+            pv2bess[i::DAY_LENGTH] = np.where(charge_condition,
+                                              np.minimum(pv2bess_pre + max_extra_pv2bess * hour_actions[:, 0],
+                                                         self._pcs_power / charge_ret + hour_active_self_cons),
+                                              np.minimum(pv2bess_pre, self._pcs_power / charge_ret +
+                                                         hour_active_self_cons))
+            net_pv2bess = np.where(charge_condition, relu(pv2bess[i::DAY_LENGTH] - hour_active_self_cons) * charge_ret,
+                                   0)
+            # remaining pv power goes to grid
+            pv2grid[i::DAY_LENGTH] = np.minimum(hour_pv_output - pv2bess[i::DAY_LENGTH], self._grid_size / trans_ret)
+            net_pv2grid = np.where(pv2grid[i::DAY_LENGTH] > 0, pv2grid[i::DAY_LENGTH] * trans_ret,
+                                   -pv2grid[i::DAY_LENGTH] / trans_ret)
+            # calculate power from grid to bess, first the max power and then the actual power according to the actions
+            added_self_cons = np.where(pv2bess[i::DAY_LENGTH] < hour_active_self_cons, hour_active_self_cons, 0)
+            option1 = (available_cap - net_pv2bess) / grid_bess_ret
+            option1 = np.where(option1 > 0, option1 + added_self_cons, 0)
+            option2 = (self._pcs_power - net_pv2bess) / grid_bess_ret
+            option2 = np.where(option2 > 0, option2 + added_self_cons, 0)
+            max_grid2bess = relu(np.minimum(np.minimum(self._grid_size - net_pv2grid, option1), option2))
+            grid2bess[i::DAY_LENGTH] = np.where(charge_condition, max_grid2bess * relu(-hour_actions[:, 1]), 0)
+            net_grid2bess = np.where(charge_condition, relu(grid2bess[i::DAY_LENGTH] - added_self_cons) * grid_bess_ret,
+                                     0)
+            # discharge option calculations
+            # calculate power from bess to grid (pv power sold first), first the max power and then the actual power
+            # according to the actions
+            max_bess2grid = np.where(hour_pv_output > 0,
+                                     relu(np.minimum(np.minimum((self._grid_size - hour_pv_output *
+                                                                trans_ret) / rte / grid_bess_ret +
+                                                                hour_active_self_cons, soc), self._pcs_power)),
+                                     relu(np.minimum(soc, self._pcs_power + hour_pv_output /
+                                                     charge_ret)))
+            bess2grid[i::DAY_LENGTH] = np.where(charge_condition,
+                                                0,
+                                                relu(max_bess2grid - hour_active_self_cons) * hour_actions[:, 1])
+            # use bess power for pv self consumption if available, and remove it from power to grid
+            bess2pv = np.where(~charge_condition & (hour_pv_output < 0) &
+                               (bess2grid[i::DAY_LENGTH] > -hour_pv_output / charge_ret),
+                               -hour_pv_output / charge_ret, 0)
+            bess2grid[i::DAY_LENGTH] += np.where(bess2grid[i::DAY_LENGTH] > 0, hour_active_self_cons, 0) - bess2pv
+            # account for self consumption (not yet accounted for in previous calculations)
+            condition1 = (bess2grid[i::DAY_LENGTH] == 0) & (pv2bess[i::DAY_LENGTH] + grid2bess[i::DAY_LENGTH] <
+                                                            hour_active_self_cons)
+            condition2 = pv2grid[i::DAY_LENGTH] > hour_idle_self_cons
+            pv2bess[i::DAY_LENGTH] += np.where(condition1 & condition2, hour_idle_self_cons, 0)
+            pv2grid[i::DAY_LENGTH] -= np.where(condition1 & condition2, hour_idle_self_cons, 0)
+            grid2bess[i::DAY_LENGTH] = np.where(condition1 & ~condition2, hour_idle_self_cons, grid2bess[i::DAY_LENGTH])
+            # update soc after power flow for hour i
+            soc += net_pv2bess + net_grid2bess - bess2grid[i::DAY_LENGTH] - bess2pv
+            # calculate the power purchased from for pv self consumption
+            grid2pv[i::DAY_LENGTH] = np.where(pv2grid[i::DAY_LENGTH] / trans_ret + bess2pv < 0, -pv2grid[i::DAY_LENGTH]
+                                              / trans_ret, 0)
+
+            # calculate the total power output to grid
+            net_bess2grid = relu((bess2grid[i::DAY_LENGTH] - hour_active_self_cons) * grid_bess_ret * rte)
+            net_pv2grid = relu(pv2grid[i::DAY_LENGTH]) * trans_ret
+            output[i::DAY_LENGTH] = net_pv2grid + net_bess2grid
+
+            # save additional stats for analysis
+            if self._save_all_results:
+                pv2bess_pre_acc[i::DAY_LENGTH] = pv2bess_pre
+                bess_from_pv[i::DAY_LENGTH] = net_pv2bess
+                bess_from_grid[i::DAY_LENGTH] = net_grid2bess
+                grid_from_pv[i::DAY_LENGTH] = net_pv2grid
+                grid_from_bess[i::DAY_LENGTH] = net_bess2grid
+                acc_losses[i::DAY_LENGTH] = (pv2bess[i::DAY_LENGTH] - net_pv2bess + grid2bess[i::DAY_LENGTH] -
+                                             net_grid2bess + pv2grid[i::DAY_LENGTH] - net_pv2grid +
+                                             bess2grid[i::DAY_LENGTH] - net_bess2grid)
+                acc_soc[i::DAY_LENGTH] = soc
+
+        # fix for when soc at last hour is not 0
+        for i in range(DAY_LENGTH - 1, -1, -1):
+            # stop when all soc are 0
+            if np.all(soc < active_self_cons[i::DAY_LENGTH]):
+                break
+
+            can_discharge = pv2bess[i::DAY_LENGTH] + grid2bess[i::DAY_LENGTH] <= idle_self_cons[i::DAY_LENGTH]
+            # find the amount that can be added
+            added_amount = relu(np.minimum((self.grid_size - pv2grid[i::DAY_LENGTH] * trans_ret -
+                                            bess2grid[i::DAY_LENGTH] * rte * grid_bess_ret) / rte / grid_bess_ret, soc))
+            # only add discharge if it is more than self consumption
+            added_amount = np.where(added_amount > active_self_cons[i::DAY_LENGTH], added_amount, 0)
+            added_self_cons = np.where((added_amount > 0) & (bess2grid[i::DAY_LENGTH] <
+                                                             active_self_cons[i::DAY_LENGTH]),
+                                       active_self_cons[i::DAY_LENGTH],
+                                       0)
+            # correct amount if using all remaining soc and some is used for self consumption
+            added_amount = np.where(added_amount + added_self_cons >= soc, soc - added_self_cons, added_amount)
+            # increase the amount of energy from grid to bess and decrease the soc accordingly
+            bess2grid[i::DAY_LENGTH] += np.where(can_discharge, added_amount + added_self_cons, 0)
+            soc -= added_amount + added_self_cons
+            # removed idle self consumption if added discharge
+            net_added_amount = np.where(can_discharge, added_amount * rte * grid_bess_ret, 0)
+            grid2bess[i::DAY_LENGTH] -= np.where((net_added_amount > 0) & (grid2bess[i::DAY_LENGTH] ==
+                                                                           idle_self_cons[i::DAY_LENGTH]),
+                                                 idle_self_cons[i::DAY_LENGTH],
+                                                 0)
+            pv2bess[i::DAY_LENGTH] -= np.where((net_added_amount > 0) & (pv2bess[i::DAY_LENGTH] ==
+                                                                         idle_self_cons[i::DAY_LENGTH]),
+                                               idle_self_cons[i::DAY_LENGTH],
+                                               0)
+
+            # update the saved data
+            if self._save_all_results:
+                grid_from_bess[i::DAY_LENGTH] = net_added_amount
+                acc_losses[i::DAY_LENGTH] += np.where(can_discharge,
+                                                      relu(added_self_cons + added_amount - net_added_amount -
+                                                           idle_self_cons[i::DAY_LENGTH]),
+                                                      0)
+                for j in range(i, DAY_LENGTH):
+                    acc_soc[j::DAY_LENGTH] -= added_amount + added_self_cons
+
+        # save power flow to dataframe
+        self._df["pv2bess"] = pv2bess
+        self._df["grid2bess"] = grid2bess
+        self._df["pv2grid"] = pv2grid
+        self._df["grid2pv"] = grid2pv
+        self._df["bess2grid"] = bess2grid
+        self._df["output"] = output
+
+        # save additional stats to dataframe
+        if self._save_all_results:
+            self._df["battery_overflow"] = relu(self._df["pv_output"] - pv2bess_pre_acc)
+            self._df["bess_from_pv"] = bess_from_pv
+            self._df["bess_from_grid"] = bess_from_grid
+            self._df["grid_from_pv"] = grid_from_pv
+            self._df["grid_from_bess"] = grid_from_bess
+            self._df["acc_losses"] = acc_losses
+            self._df["soc"] = acc_soc
