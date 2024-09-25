@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "optibess_algorithm"
-version = "0.1.1"
+version = "0.1.2"
 description = "Optibess Algorithm is a python 3.10+ library for simulating and optimizing a photovoltaic system with power storage."
 authors = [{ name = "El-mor Renewable Energies Dev Team" }]
 readme = "README.rst"
@@ -27,6 +27,7 @@ dependencies = [
     "timezonefinder==6.1.9",
     "pvlib==0.10.2",
     "solarfactors>=1.5.3",
+    "onnxruntime==1.19.2",
 ]
 requires-python = ">=3.10"
 
