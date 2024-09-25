@@ -1153,16 +1153,14 @@ class NNOutputCalculator(OutputCalculator):
 
     @sell_prices.setter
     def sell_prices(self, value: np.ndarray[Any, np.dtype[np.float64]]):
-        if value is not None and isinstance(value, np.ndarray) and is_real_numbers(value):
+        if isinstance(value, np.ndarray) and is_real_numbers(value):
             if value.shape != (YEAR_HOURS,) and value.shape != (self._project_hour_num,):
                 raise ValueError(f"Prices shape should be ({YEAR_HOURS},) or ({self._project_hour_num}, ), prices"
                                  f" for each hour in a year or for each hour of every year")
             # compare shapes if buy prices were set
-            try:
+            if self._buy_prices is not None:
                 if value.shape != self._buy_prices.shape:
                     raise ValueError("Sell prices and buy prices should have the same shape")
-            except AttributeError:
-                pass
             self._sell_prices = value
         else:
             raise ValueError("Prices should be a numpy array of floats")
@@ -1173,15 +1171,13 @@ class NNOutputCalculator(OutputCalculator):
 
     @buy_prices.setter
     def buy_prices(self, value: np.ndarray[Any, np.dtype[np.float64]]):
-        if value is not None and isinstance(value, np.ndarray) and is_real_numbers(value):
+        if isinstance(value, np.ndarray) and is_real_numbers(value):
             if value.shape != (YEAR_HOURS,) and value.shape != (self._project_hour_num, ):
                 raise ValueError(f"Prices shape should be ({YEAR_HOURS},) or ({self._project_hour_num}, ), prices"
                                  f" for each hour in a year or for each hour of every year")
-            try:
+            if self._sell_prices is not None:
                 if value.shape != self._sell_prices.shape:
                     raise ValueError("Sell prices and buy prices should have the same shape")
-            except AttributeError:
-                pass
             self._buy_prices = value
         else:
             raise ValueError("Prices should be a numpy array of floats")
