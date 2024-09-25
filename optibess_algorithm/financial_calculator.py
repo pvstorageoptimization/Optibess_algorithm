@@ -530,7 +530,7 @@ class FinancialCalculator:
             return self._hourly_tariff, self._hourly_buy_tariff
 
         relative_year = year - self.output_calculator.producer.start_year
-        self._hourly_tariff,self._hourly_buy_tariff = \
+        self._hourly_tariff, self._hourly_buy_tariff = \
             get_yearly_prices(relative_year, self._hourly_sell_prices, self._hourly_buy_prices, self._tariff_table,
                               self.output_calculator.producer.start_year, self.output_calculator.yearly_hour_num)
         self._hourly_matrix_year = year

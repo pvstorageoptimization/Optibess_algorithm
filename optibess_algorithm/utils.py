@@ -1,5 +1,5 @@
 import itertools
-from typing import Union
+from typing import Union, Any
 
 import numpy as np
 import pandas as pd
@@ -141,8 +141,8 @@ def get_seasonal_hour_division(winter_low_hours: tuple[int, ...] | None = None,
 
 def build_tariff_table(winter_low: float, winter_high_week: float, winter_high_weekend: float, transition_low: float,
                        transition_high_week: float, transition_high_weekend: float, summer_low: float,
-                       summer_high_week: float, summer_high_weekend: float, week_days: tuple = (0, 1, 2, 3, 4),
-                       winter_months: tuple[int, ...] = (0, 1, 11),
+                       summer_high_week: float, summer_high_weekend: float,
+                       week_days: tuple[int, ...] = (0, 1, 2, 3, 4), winter_months: tuple[int, ...] = (0, 1, 11),
                        transition_months: tuple[int, ...] = (2, 3, 4, 9, 10),
                        summer_months: tuple[int, ...] = (5, 6, 7, 8),
                        winter_low_hours: tuple[int, ...] | None = None,
@@ -206,7 +206,7 @@ def build_tariff_table(winter_low: float, winter_high_week: float, winter_high_w
     return tariff_table
 
 
-def tariff_table_to_hourly(tariff_table: np.ndarray, year: int):
+def tariff_table_to_hourly(tariff_table: np.ndarray[float], year: int):
     """
     Create hourly prices for tariff table in the given year
 
@@ -299,7 +299,7 @@ def get_yearly_prices(year, sell_prices, buy_prices, tariff_table, start_year, y
     return sell_output, buy_output
 
 
-def is_real_numbers(arr: np.ndarray):
+def is_real_numbers(arr: np.ndarray[Any, Any]):
     """
     check if the dtype of the given array is a type corresponding to real numbers
     :param arr: the numpy array

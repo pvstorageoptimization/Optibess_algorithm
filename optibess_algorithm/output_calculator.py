@@ -12,8 +12,8 @@ import onnxruntime
 
 from .producers import Producer
 from .power_storage import PowerStorage
-from .utils import year_diff, month_diff, relu, clamp, is_leap_year, hour_num_in_range, tariff_table_to_hourly, \
-    get_yearly_prices, is_real_numbers
+from .utils import (year_diff, month_diff, relu, clamp, is_leap_year, hour_num_in_range, get_yearly_prices,
+                    is_real_numbers)
 from .constants import YEAR_DAYS, YEAR_HOURS, DAY_LENGTH
 
 
@@ -1152,7 +1152,7 @@ class NNOutputCalculator(OutputCalculator):
         return self._sell_prices
 
     @sell_prices.setter
-    def sell_prices(self, value: np.ndarray[float]):
+    def sell_prices(self, value: np.ndarray[Any, float]):
         if isinstance(value, np.ndarray) and is_real_numbers(value):
             if value.shape != (YEAR_HOURS,) and value.shape != (self._project_hour_num,):
                 raise ValueError(f"Prices shape should be ({YEAR_HOURS},) or ({self._project_hour_num}, ), prices"
@@ -1172,7 +1172,7 @@ class NNOutputCalculator(OutputCalculator):
         return self._buy_prices
 
     @buy_prices.setter
-    def buy_prices(self, value: np.ndarray[float]):
+    def buy_prices(self, value: np.ndarray[Any, float]):
         if isinstance(value, np.ndarray) and is_real_numbers(value):
             if value.shape != (YEAR_HOURS,) and value.shape != (self._project_hour_num, ):
                 raise ValueError(f"Prices shape should be ({YEAR_HOURS},) or ({self._project_hour_num}, ), prices"
@@ -1200,7 +1200,7 @@ class NNOutputCalculator(OutputCalculator):
                 raise ValueError("Tariff table should be of shape (7, 12, 24)")
         self._tariff_table = value
 
-    def _get_action_from_obs(self, obs: np.ndarray):
+    def _get_action_from_obs(self, obs: np.ndarray[Any, float]):
         """
         get action(s) from model given an observation
 
