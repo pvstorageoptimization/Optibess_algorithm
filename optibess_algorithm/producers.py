@@ -369,7 +369,7 @@ class PvProducer(Producer):
     def start_year(self):
         return self._start_year
 
-    def _set_start_year(self, value: int):
+    def _set_start_year(self, value):
         if value is None:
             self._start_year = datetime.datetime.today().year
         else:

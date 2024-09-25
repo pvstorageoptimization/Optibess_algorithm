@@ -1152,7 +1152,7 @@ class NNOutputCalculator(OutputCalculator):
         return self._sell_prices
 
     @sell_prices.setter
-    def sell_prices(self, value: np.ndarray[Any, float]):
+    def sell_prices(self, value: np.ndarray[Any, np.dtype[np.float64]]):
         if isinstance(value, np.ndarray) and is_real_numbers(value):
             if value.shape != (YEAR_HOURS,) and value.shape != (self._project_hour_num,):
                 raise ValueError(f"Prices shape should be ({YEAR_HOURS},) or ({self._project_hour_num}, ), prices"
@@ -1172,7 +1172,7 @@ class NNOutputCalculator(OutputCalculator):
         return self._buy_prices
 
     @buy_prices.setter
-    def buy_prices(self, value: np.ndarray[Any, float]):
+    def buy_prices(self, value: np.ndarray[Any, np.dtype[np.float64]]):
         if isinstance(value, np.ndarray) and is_real_numbers(value):
             if value.shape != (YEAR_HOURS,) and value.shape != (self._project_hour_num, ):
                 raise ValueError(f"Prices shape should be ({YEAR_HOURS},) or ({self._project_hour_num}, ), prices"
@@ -1200,7 +1200,7 @@ class NNOutputCalculator(OutputCalculator):
                 raise ValueError("Tariff table should be of shape (7, 12, 24)")
         self._tariff_table = value
 
-    def _get_action_from_obs(self, obs: np.ndarray[Any, float]):
+    def _get_action_from_obs(self, obs: np.ndarray[Any, np.dtype[np.float64]]):
         """
         get action(s) from model given an observation
 
