@@ -1,5 +1,7 @@
 import unittest
 from unittest.mock import Mock
+
+import onnxruntime
 import pandas as pd
 import numpy as np
 import numpy.testing as nptesting
@@ -789,8 +791,10 @@ class TestNNOutputCalculator(unittest.TestCase):
         output._prod_trans_loss = 0.024
         output._charge_loss = 0.035
         output._grid_bess_loss = 0.04
+        output._model_session = onnxruntime.InferenceSession("output_calculator/test_model.onnx",
+                                                             providers=["CPUExecutionProvider"])
         output.run()
-        expected_result = [-0., -0., -0., -0., -0., -0., -0., 7000., 7000.,
-                           7000., 7000., 7000., 7000., 1978.25, 5345.75, 2786.48, 7000., 6974.29,
-                           6974.29, 3581.76, -0., -0., -0., -0.]
+        expected_result = [-0., -0., -0., -0., -0., -0., -0., 6442.93, 6650.14,
+                           6656.05, 7000., 7000., 6745.98, 6830.97, 5384.28, 4091.53, 7000., 6974.29,
+                           6370.69, -0., -0., -0., -0., -0.]
         nptesting.assert_array_almost_equal(output.output[0][:24], expected_result, 2)

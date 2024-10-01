@@ -1115,11 +1115,10 @@ class NNOutputCalculator(OutputCalculator):
         super().__init__(*args, **kwargs)
         self._fill_battery_from_grid = True
         self.tariff_table = tariff_table
+        self._sell_prices = self._buy_prices = None
         if sell_prices is not None:
             self.sell_prices = sell_prices
             self.buy_prices = buy_prices if buy_prices is not None else sell_prices
-        else:
-            self._sell_prices = self._buy_prices = None
         self._model_session = onnxruntime.InferenceSession(os.path.join(os.path.dirname(__file__),
                                                                         "schedule_model.onnx"),
                                                            providers=["CPUExecutionProvider"])
@@ -1246,6 +1245,8 @@ class NNOutputCalculator(OutputCalculator):
         stride = self._df["pv_output"].values.strides[0]
         split_hourly_power = ast(normalized_hourly_power, (YEAR_DAYS + day_add, DAY_LENGTH),
                                  (DAY_LENGTH * stride, stride))
+        temp = normalized_hourly_power.reshape((YEAR_DAYS + day_add, DAY_LENGTH))
+        print(np.all(np.equal(split_hourly_power, temp)))
         split_hourly_power = np.repeat(split_hourly_power, DAY_LENGTH, axis=0) + pos_encoding
         split_prices = ast(sell_prices, (YEAR_DAYS + day_add, DAY_LENGTH), (DAY_LENGTH, sell_prices.strides[0]))
         max_sell_prices = np.repeat(np.max(np.abs(split_prices), axis=1) + self.EPSILON, DAY_LENGTH)
