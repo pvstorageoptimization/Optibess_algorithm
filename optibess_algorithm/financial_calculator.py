@@ -60,6 +60,10 @@ class FinancialCalculator:
         :param interest_rate: the market interest rate (as fraction)
         :param cpi: the market consumer price index (as fraction)
         :param battery_cost_deg yearly degradation in price of batteries (as fraction)
+        :param hourly_sell_prices: a numpy array with prices for selling power in each hour of a year or each hour of
+            every year of the project
+        :param hourly_buy_prices: a numpy array with prices for buying power in each hour of a year or each hour of
+            every year of the project
         :param tariff_table: a numpy array with tariff for every hour in each day of the week in every month (or none)
         :param base_tariff: basic tariff for power (multiplied by seasonal factor to get seasonal rate, shekel. if
             tariff table is supplied, this and the factor below are ignored)

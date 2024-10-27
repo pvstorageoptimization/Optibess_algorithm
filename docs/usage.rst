@@ -54,8 +54,13 @@ Create a producer using pvlib with:
 - :code:`number_of_inverters` is the number of inverters in the PV system
 - :code:`module` is a pandas series with parameters for the module
 - :code:`inverter` is a pandas series with parameters for the inverter
-- :code:`use_bifacial` is a boolean idicating if the system uses bifacial calculation
+- :code:`use_bifacial` is a boolean indicating if the system uses bifacial calculation
 - :code:`albedo` is the fraction of sunlight diffusely reflected by the ground
+
+All three options also have 2 shared parameters:
+
+- :code:`annual_deg` a factor by which the energy produced by the system is degraded each year
+- :code:`start_year` the year the producer started to generate energy (full year number)
 
 Create a power storage with:
 
@@ -63,7 +68,7 @@ Create a power storage with:
     :language: python
 
 - :code:`num_of_year` is the number of years the storage system will be used
-- :code:`grid_size` is the size of the connection to the grid (in kW)
+- :code:`connection_size` is the size of the connection to the grid (in kW)
 - :code:`block_size` is the size of each block in the storage system
 - :code:`battery_hours` is the number of hours the storage system should supply each day (used to determine the size of
   the system)
@@ -77,7 +82,7 @@ is false only uses te first augmentation.
 
 Additional parameters:
 
-- :code:`deg_table`, :code:`dod_table` and :code:`rte_table` are 3 listed of values between 0 and 1, specifying the
+- :code:`degradation_table`, :code:`dod_table` and :code:`rte_table` are 3 listed of values between 0 and 1, specifying the
   degradation, depth of discharge and round trip efficiency for each year
 - :code:`pcs_loss`, :code:`mvbat_loss` and :code:`trans_loss` are different losses in the system
 - :code:`idle_self_consumption` and :code:`active_self_consumption` are the percentage of the nominal storage system
@@ -136,11 +141,13 @@ parameters:
 - :code:`usd_to_ils` is a convertion rate from us dollars to israeli new shekel
 - :code:`interest_rate` is the market interest rate
 - :code:`cpi` is the consumer price index
-- :code:`battery_deg_cost` is the annual reduction of battery cost (in percentage)
+- :code:`battery_cost_deg` is the annual reduction of battery cost (in percentage)
 - :code:`base_tariff` is the base tariff used to construct the tariff table
 - :code:`low/high_winter/transition/summer_factor` are factors by which the the base tariff is multiplied to create the
   tariff table
 - :code:`buy_from_grid_factor` is a factor by which to multiply a tariff to get the prices of buy power
+- :code:`hourly_sell/buy_prices` a numpy array with prices for selling/buying power in each hour of a year or each hour
+  of every year of the project
 - :code:`tariff_table` is an option to specify the tariff table directly
 
 The tariff table is constructed according to the following table:
@@ -149,7 +156,33 @@ The tariff table is constructed according to the following table:
 
 .. note::
 
-    The current version is only suited for working with tariffs with similar structure to the table above
+    The simple version is only suited for working with tariffs with similar structure to the table above
+
+Simulation with NN module
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can use a simulation with an NN model for daily charge/discharge decisions, capable of simulating the system with
+different price for each hour. To do this use a subclass of OutputCalculator called :code:`NNOutputCalculator`:
+
+.. literalinclude:: nn_simulation_example.py
+    :language: python
+
+The additional parameters that the nn calculator take are:
+
+- :code:`tariff_table` a numpy array with tariff for every hour in every month
+- :code:`sell_prices` the prices for selling power in each hour of a year or each hour of every year of the project
+- :code:`buy_prices` the prices for buying power in each hour of a year or each hour of every year of the project
+
+You should provide either tariff table or sell prices (sell prices take priority, buy prices are used if sell prices
+are provided).
+
+You can also use the NN output calculator as input for the financial calculator:
+
+.. literalinclude:: nn_financial_example.py
+    :language: python
+
+You can also use your own NN model by replacing the file :code:`schedule_model.onnx` with your own onnx file, that has
+details of an NN model with the same inputs and outputs.
 
 Diagrams of the system
 ~~~~~~~~~~~~~~~~~~~~~~

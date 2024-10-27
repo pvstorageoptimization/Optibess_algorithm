@@ -34,7 +34,8 @@ class OutputCalculator:
     Calculates the hourly output of the pv system and the storage system, and the hourly consumption from the grid
     """
 
-    def __init__(self, num_of_years: int,
+    def __init__(self,
+                 num_of_years: int,
                  grid_size: int,
                  producer: Producer,
                  power_storage: PowerStorage,
@@ -1105,10 +1106,10 @@ class NNOutputCalculator(OutputCalculator):
 
         :param tariff_table: a numpy array with tariff for every hour in every month (optional, ignored if sell_prices
             is provided)
-        :param sell_prices: the price for selling power in each hour of a year (1d array with floats, must be provided
-            if tariff table is not provided)
-        :param buy_prices: the prices for buying power in each hour of the year (1d array with floats, if None uses sell
-            prices)
+        :param sell_prices: the price for selling power in each hour of a year or each hour of every year of the project
+            (1d array with floats, must be provided if tariff table is not provided)
+        :param buy_prices: the prices for buying power in each hour of the year or each hour of every year of the
+            project (1d array with floats, if None uses sell prices)
         """
         if tariff_table is None and sell_prices is None:
             raise ValueError("NNOutputCalculator expects either sell prices or tariff table!")
